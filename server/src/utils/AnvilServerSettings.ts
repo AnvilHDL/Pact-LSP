@@ -151,6 +151,10 @@ export interface AnvilServerSettings {
   maxNumberOfProblems?: number;
   projectRoot?: string;
   executablePath?: string;
+  /** Extra flags passed to the compiler, e.g. `-disable-compat-checks`. */
+  compilerArgs?: string[];
+  /** Milliseconds before a compiler run is stopped; 0 disables the limit. */
+  compileTimeout?: number;
   asciiOnlyIcons?: boolean;
   snippets?: { fancy?: boolean };
   showTimingInfo?: ShowTimingInfo;

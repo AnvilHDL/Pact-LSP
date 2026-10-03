@@ -2,7 +2,7 @@
 	"editor.insertSpaces": false,
 	"typescript.tsc.autoDetect": "off",
 	"typescript.preferences.quoteStyle": "single",
-	"anvil.anvilBinaryPath": "./bin/anvil",
+	"pact.executablePath": "./bin/pact",
 	"editor.codeActionsOnSave": {
 		"source.fixAll.eslint": "explicit"
 	}

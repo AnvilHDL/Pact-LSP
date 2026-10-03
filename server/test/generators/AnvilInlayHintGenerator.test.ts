@@ -15,9 +15,12 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AnvilDocument } from '../../src/core/AnvilDocument';
 import { AnvilInlayHintGenerator } from '../../src/generators/AnvilInlayHintGenerator';
 import { AnvilServerSettings } from '../../src/utils/AnvilServerSettings';
+import {
+  compilerBinaryPath,
+  projectRoot,
+  skipUnlessAstSupported,
+} from '../testCompiler';
 
-const projectRoot = path.resolve(__dirname, '../../..');
-const anvilBinaryPath = path.join(projectRoot, 'bin', 'anvil');
 const sampleFile = 'samples/lsp_test.anvil';
 
 describe('AnvilInlayHintGenerator', function () {
@@ -26,6 +29,7 @@ describe('AnvilInlayHintGenerator', function () {
 
   before(async function () {
     this.timeout(15_000);
+    await skipUnlessAstSupported(this);
 
     fullPath = path.join(projectRoot, sampleFile);
     doc = AnvilDocument.fromFilesystem(fullPath)!;
@@ -33,7 +37,7 @@ describe('AnvilInlayHintGenerator', function () {
 
     const settings = {
       projectRoot,
-      executablePath: anvilBinaryPath,
+      executablePath: compilerBinaryPath,
     } satisfies AnvilServerSettings;
     const compiled = await doc.compile(settings);
 
@@ -48,7 +52,7 @@ describe('AnvilInlayHintGenerator', function () {
     describe('with showTimingInfo: "full"', function () {
       const settings = {
         projectRoot,
-        executablePath: anvilBinaryPath,
+        executablePath: compilerBinaryPath,
         showTimingInfo: { asInlayHints: 'full' as const },
       } satisfies AnvilServerSettings;
 
@@ -131,7 +135,7 @@ describe('AnvilInlayHintGenerator', function () {
     describe('showTimingInfo: "none"', function () {
       const settings = {
         projectRoot,
-        executablePath: anvilBinaryPath,
+        executablePath: compilerBinaryPath,
         showTimingInfo: { asInlayHints: 'none' as const },
       } satisfies AnvilServerSettings;
 
@@ -148,7 +152,7 @@ describe('AnvilInlayHintGenerator', function () {
     describe('showTimingInfo: false', function () {
       const settings = {
         projectRoot,
-        executablePath: anvilBinaryPath,
+        executablePath: compilerBinaryPath,
         showTimingInfo: false,
       } satisfies AnvilServerSettings;
 
@@ -165,7 +169,7 @@ describe('AnvilInlayHintGenerator', function () {
     describe('showTimingInfo: "condensed"', function () {
       const settings = {
         projectRoot,
-        executablePath: anvilBinaryPath,
+        executablePath: compilerBinaryPath,
         showTimingInfo: { asInlayHints: 'condensed' as const },
       } satisfies AnvilServerSettings;
 
@@ -218,7 +222,7 @@ describe('AnvilInlayHintGenerator', function () {
 
       const settings = {
         projectRoot,
-        executablePath: anvilBinaryPath,
+        executablePath: compilerBinaryPath,
         asciiOnlyIcons: true,
         showTimingInfo: { asInlayHints: 'condensed' as const },
       } satisfies AnvilServerSettings;
@@ -263,7 +267,7 @@ describe('AnvilInlayHintGenerator', function () {
     describe('showTimingInfo: "full"', function () {
       const settings = {
         projectRoot,
-        executablePath: anvilBinaryPath,
+        executablePath: compilerBinaryPath,
         showTimingInfo: { asInlayHints: 'full' as const },
       } satisfies AnvilServerSettings;
 
@@ -293,13 +297,13 @@ describe('AnvilInlayHintGenerator', function () {
     describe('compare condensed vs full mode', function () {
       const settingsCondensed = {
         projectRoot,
-        executablePath: anvilBinaryPath,
+        executablePath: compilerBinaryPath,
         showTimingInfo: { asInlayHints: 'condensed' as const },
       } satisfies AnvilServerSettings;
 
       const settingsFull = {
         projectRoot,
-        executablePath: anvilBinaryPath,
+        executablePath: compilerBinaryPath,
         showTimingInfo: { asInlayHints: 'full' as const },
       } satisfies AnvilServerSettings;
 
@@ -353,7 +357,7 @@ describe('AnvilInlayHintGenerator', function () {
 
     const settings = {
       projectRoot,
-      executablePath: anvilBinaryPath,
+      executablePath: compilerBinaryPath,
       showTimingInfo: { asInlayHints: 'full' as const },
     } satisfies AnvilServerSettings;
 
@@ -430,7 +434,7 @@ describe('AnvilInlayHintGenerator', function () {
 
     const settings = {
       projectRoot,
-      executablePath: anvilBinaryPath,
+      executablePath: compilerBinaryPath,
       showTimingInfo: { asInlayHints: 'full' as const },
     } satisfies AnvilServerSettings;
 
@@ -560,7 +564,7 @@ describe('AnvilInlayHintGenerator', function () {
   describe('edge cases', function () {
     const settings = {
       projectRoot,
-      executablePath: anvilBinaryPath,
+      executablePath: compilerBinaryPath,
       showTimingInfo: { asInlayHints: 'full' as const },
     } satisfies AnvilServerSettings;
 
@@ -664,7 +668,7 @@ describe('AnvilInlayHintGenerator', function () {
   describe('position verification', function () {
     const settings = {
       projectRoot,
-      executablePath: anvilBinaryPath,
+      executablePath: compilerBinaryPath,
       showTimingInfo: { asInlayHints: 'full' as const },
     } satisfies AnvilServerSettings;
 
@@ -717,7 +721,7 @@ describe('AnvilInlayHintGenerator', function () {
   describe('alignment', function () {
     const settings = {
       projectRoot,
-      executablePath: anvilBinaryPath,
+      executablePath: compilerBinaryPath,
       showTimingInfo: { asInlayHints: 'full' as const },
     } satisfies AnvilServerSettings;
 

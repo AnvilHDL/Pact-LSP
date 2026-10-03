@@ -18,12 +18,12 @@ footer() {
     echo
 }
 
-build-anvil() {
-    header "Building Anvil..."
-    cd ./anvil
+build-pact() {
+    header "Building Pact..."
+    cd ./pact
     git fetch >> /dev/null 2>&1
     if [ -n "$(git diff --stat)" ]; then
-        echo "Warning: Anvil may not be up-to-date."
+        echo "Warning: Pact may not be up-to-date."
     fi
     eval $(opam env) && opam install . --deps-only && dune build
     RESULT=$?
@@ -68,7 +68,7 @@ build-vim() {
 
 if [[ -z "$@" ]]; then
     echo "Building all components..."
-    build-anvil
+    build-pact
     build-server
     build-vscode
     build-vim
@@ -76,8 +76,8 @@ fi
 
 for arg in "$@"; do
     case $arg in
-        anvil)
-            build-anvil
+        pact)
+            build-pact
             ;;
         server)
             build-server
@@ -91,7 +91,7 @@ for arg in "$@"; do
         *)
             echo "Unknown argument: $arg"
             echo
-            echo "Usage: $0 [anvil|server|vscode|vim]"
+            echo "Usage: $0 [pact|server|vscode|vim]"
             echo
             echo "If no arguments are provided, all components will be built."
             echo

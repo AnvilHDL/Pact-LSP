@@ -50,7 +50,7 @@ for arg in "$@"; do
         server|vscode|vim)
             update-server
             ;;
-        anvil|submodules)
+        pact|submodules)
             update-submodules
             ;;
         *)

@@ -134,7 +134,7 @@ const documentSettings = LazyMap.onCacheMissAsync<
   const result =
     (await connection.workspace.getConfiguration({
       scopeUri: resource,
-      section: 'anvil',
+      section: 'pact',
     })) || DEFAULT_ANVIL_SERVER_SETTINGS;
   return result;
 });
@@ -232,7 +232,7 @@ connection.onDidChangeConfiguration((change) => {
     // Reset all cached document settings
     documentSettings.clear();
   } else {
-    globalSettings = change.settings['anvil'] || globalSettings;
+    globalSettings = change.settings['pact'] || globalSettings;
   }
   connection.languages.diagnostics.refresh();
   connection.languages.inlayHint.refresh();
@@ -312,35 +312,55 @@ connection.onHover(async (params) => {
           },
         };
 
-  if (!anvilDocument.anvilAst) {
-    await anvilDocument.compile(settings);
-  }
-
-  if (!anvilDocument.anvilAst) {
-    return !D
-      ? null
-      : {
-          contents: {
-            kind: 'markdown',
-            value:
-              '**Error:** No information available (AST information unavailable)',
-          },
-        };
-  }
-
   const position = params.position;
+
+  // Syntax help for the keyword or operator under the cursor, from the static
+  // tables. Used when the compiler provides no AST node to describe.
+  const keywordHover = () => {
+    if (!showSyntaxHelp.onHover) return null;
+    const token = anvilDocument.getTokenAtLspPosition(position);
+    const value = token
+      ? AnvilDescriptionGenerator.describeKeyword(token, {
+          examples: showSyntaxHelp.includeExamples,
+        })
+      : null;
+    return value ? { contents: { kind: 'markdown' as const, value } } : null;
+  };
+
+  if (!anvilDocument.anvilAst) {
+    await anvilDocument.ensureAst(settings);
+  }
+
+  if (!anvilDocument.anvilAst) {
+    return (
+      keywordHover() ??
+      (!D
+        ? null
+        : {
+            contents: {
+              kind: 'markdown',
+              value:
+                '**Error:** No information available (AST information unavailable)',
+            },
+          })
+    );
+  }
+
   const node = anvilDocument.getClosestAnvilNodeToLspPosition(position);
 
   if (!node) {
-    return !D
-      ? null
-      : {
-          contents: {
-            kind: 'markdown',
-            value:
-              '**Error:** No information available (cannot find AST node at position)',
-          },
-        };
+    return (
+      keywordHover() ??
+      (!D
+        ? null
+        : {
+            contents: {
+              kind: 'markdown',
+              value:
+                '**Error:** No information available (cannot find AST node at position)',
+            },
+          })
+    );
   }
 
   return {
@@ -380,7 +400,7 @@ connection.onDefinition(async (params) => {
   if (!anvilDocument) return null;
 
   if (!anvilDocument.anvilAst) {
-    await anvilDocument.compile(settings);
+    await anvilDocument.ensureAst(settings);
   }
 
   const ast = anvilDocument.anvilAst;
@@ -435,7 +455,7 @@ connection.onTypeDefinition(async (params) => {
   if (!anvilDocument) return null;
 
   if (!anvilDocument.anvilAst) {
-    await anvilDocument.compile(settings);
+    await anvilDocument.ensureAst(settings);
   }
 
   const ast = anvilDocument.anvilAst;
@@ -502,7 +522,7 @@ connection.onReferences(async (params) => {
   if (!anvilDocument) return null;
 
   if (!anvilDocument.anvilAst) {
-    await anvilDocument.compile(settings);
+    await anvilDocument.ensureAst(settings);
   }
 
   if (!anvilDocument.anvilAst) {
@@ -659,7 +679,7 @@ connection.onSignatureHelp(async (params) => {
 
   if (!anvilDocument.anvilAst) {
     const settings = await documentSettings.get(params.textDocument.uri);
-    await anvilDocument.compile(settings);
+    await anvilDocument.ensureAst(settings);
   }
 
   if (!anvilDocument.anvilAst) {
@@ -696,7 +716,7 @@ connection.languages.inlayHint.on(async (params) => {
   if (!anvilDocument) return [];
 
   if (!anvilDocument.anvilAst) {
-    await anvilDocument.compile(settings);
+    await anvilDocument.ensureAst(settings);
   }
 
   const inlayHints = AnvilInlayHintGenerator.generateInlayHints(

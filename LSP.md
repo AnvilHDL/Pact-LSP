@@ -1,4 +1,32 @@
-## Anvil Language Server Protocol (LSP) Support
+## Pact Language Server Protocol (LSP) Support
+
+The Pact compiler does not yet emit the annotated AST (`-ast`) that the semantic features depend on. The server detects `-ast` from the compiler's `-help` output and enables those features automatically once it is available. Until then:
+
+**Available with the current Pact compiler:**
+
+- ✅ Inline Diagnostics
+    - ✅ Compile Errors
+    - ⏳ Compile Warnings (Pact prints warnings to stderr, not in its JSON output)
+- ✅ Hover Information
+    - ✅ Pact keyword and operator syntax help (without AST)
+    - ⏳ Definitions, types, lifetimes and timings (requires `-ast`)
+- ✅ Autocompletion
+    - ✅ Anvil and Pact keywords, with documentation and snippets
+    - ✅ Unicode session-type operators (`\sum` → `∑`, etc.)
+    - ⏳ Document symbols and context-aware suggestions (requires `-ast`)
+- ✅ Syntax Highlighting (VS Code TextMate grammar and Vim syntax)
+    - ✅ `interface`, `pool`, `protocol`, `offer`, `xoffer`, `isend`, `irecv`, `rec`, `forall`, `not`, `F`
+    - ✅ `∑ ∏ ⨁ ⋀ ∀ ∈ μ  ̸`, `=>`, `<<`, `$`, `||`
+- ⏳ Go to Definition, Go to Type Definition, Find All References (require `-ast`)
+- ⏳ Signature Help (requires `-ast`)
+- ⏳ Inlay Hints (requires `-ast`)
+- ⏳ Pact-specific navigation (requires `-ast` covering Pact constructs)
+    - ⏳ Hover, definitions and references for interfaces, pools, protocols and interface-typed procs
+    - ⏳ Session-state hints: the remaining local session type at a point in a thread
+
+## Feature Support with `-ast`
+
+With an AST-capable compiler, the server supports the following (as inherited from anvil-lsp; Pact-specific constructs additionally need serializer support):
 
 **Progress:**
 
@@ -9,7 +37,7 @@
     - ✅ Definitions and types
     - ⚠️ Lifetimes and timings
     - ❌ Documentation
-    - ✅ Anvil syntax help
+    - ✅ Pact syntax help
 - ✅ Go to Definition
     - Requires compiler annotations for definitions.
 - ⚠️ Go to Type Definition
@@ -22,7 +50,7 @@
     - ✅ Record init field values (`Rec::{<field> = <value>; ... }`)
     - ✅ Spawn process arguments (`spawn <proc>(<args>)`)
 - ✅ Autocompletion
-    - ✅ Anvil keywords
+    - ✅ Pact keywords
     - ✅ Document symbols
     - ✅ Context-aware suggestions
         - ✅ Function call syntax (`call <identifier>(<args>)`)

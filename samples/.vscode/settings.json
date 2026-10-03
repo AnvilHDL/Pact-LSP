@@ -1,4 +1,4 @@
 {
-    "anvil.anvilBinaryPath": "../bin/anvil",
-    "anvil.debug": true
+    "pact.executablePath": "../bin/pact",
+    "pact.debug": true
 }

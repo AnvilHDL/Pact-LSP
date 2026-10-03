@@ -4,6 +4,8 @@ import {
   CompletionItemKind,
   InsertTextFormat,
   Position,
+  Range,
+  TextEdit,
 } from 'vscode-languageserver';
 import { AnvilAstNode, AnvilAstNodePath } from '../core/ast/AnvilAst';
 import { AnvilDocument } from '../core/AnvilDocument';
@@ -16,6 +18,14 @@ import { completionInfo } from '../info/parsed';
 import { completionLogger } from '../utils/logger';
 
 export class AnvilCompletionDetail {
+  /**
+   * Source range replaced by the insert text, for items whose typed text
+   * differs from what they insert (e.g. `\sum` inserting `∑`).
+   */
+  public replaceRange?: Range;
+  /** Text matched against the content of {@link replaceRange}; defaults to the label. */
+  public filterText?: string;
+
   private constructor(
     public label: string,
     public insertText: string = label,
@@ -153,22 +163,30 @@ export class AnvilCompletionDetail {
           : { ...d, source: this.source },
       detail: this.hint,
       insertText: insertText,
-      insertTextFormat: this.isSnippet
-        ? InsertTextFormat.Snippet
-        : InsertTextFormat.PlainText,
-      command: this.isSnippet
+      ...(this.replaceRange
         ? {
-            // Trigger parameter hints after inserting a snippet,
-            // since some snippets may contain placeholders that can be filled in,
-            // and LSP doesn't mandate that this is fired.
-            //
-            // This is NOT an LSP command, it's a VSCode-specific command.
-            //
-            // TODO: add a toggle in settings to configure compatibility modes
-            title: 'Trigger Parameter Hints',
-            command: 'editor.action.triggerParameterHints',
+            textEdit: TextEdit.replace(this.replaceRange, insertText),
+            filterText: this.filterText ?? this.label,
           }
-        : undefined,
+        : {}),
+      insertTextFormat:
+        this.isSnippet && !this.replaceRange
+          ? InsertTextFormat.Snippet
+          : InsertTextFormat.PlainText,
+      command:
+        this.isSnippet && !this.replaceRange
+          ? {
+              // Trigger parameter hints after inserting a snippet,
+              // since some snippets may contain placeholders that can be filled in,
+              // and LSP doesn't mandate that this is fired.
+              //
+              // This is NOT an LSP command, it's a VSCode-specific command.
+              //
+              // TODO: add a toggle in settings to configure compatibility modes
+              title: 'Trigger Parameter Hints',
+              command: 'editor.action.triggerParameterHints',
+            }
+          : undefined,
     };
   }
 }
@@ -190,6 +208,7 @@ export class AnvilCompletionGenerator {
     '@',
     '#',
     ' ',
+    '\\',
   ];
 
   public static readonly SPACER_REGEX_GROUP = '(^|[\\s\\(\\[{])';
@@ -234,6 +253,14 @@ export class AnvilCompletionGenerator {
     document: AnvilDocument,
   ): AnvilCompletionDetail[] {
     // Check for special syntax heuristics first and return early for any matches.
+    const unicodeCompletions = this.checkUnicodeOperatorHeuristics(
+      position,
+      document,
+    );
+    if (unicodeCompletions !== null) {
+      return unicodeCompletions;
+    }
+
     const readRegCompletions = this.checkReadRegisterHeuristics(
       position,
       document,
@@ -306,6 +333,61 @@ export class AnvilCompletionGenerator {
     // All Anvil keywords and operators.
     completionItems.push(...this.getAnvilBuiltinCompletions());
 
+    return completionItems;
+  }
+
+  //
+  // HEURISTICS: unicode operators
+  //
+
+  /**
+   * After a backslash outside string literals (e.g. `\su|`), offers the
+   * Unicode session-type operators by their trigger names. Accepting one
+   * replaces the whole `\name` with the symbol.
+   *
+   * Symbols that begin with whitespace (the exclusion operator ` ̸` is lexed
+   * as exactly one space plus U+0338) also replace the whitespace before the
+   * backslash, so that `[1..5] \not` becomes `[1..5] ̸` rather than two spaces.
+   */
+  private static checkUnicodeOperatorHeuristics(
+    position: Position,
+    document: AnvilDocument,
+  ): AnvilCompletionDetail[] | null {
+    const prefix = this.getPrefixAtPosition(position, document);
+
+    const match = /\\([A-Za-z]*)$/.exec(prefix);
+    if (!match) return null;
+
+    const beforeBackslash = prefix.slice(0, match.index);
+    const insideString = (beforeBackslash.match(/"/g)?.length ?? 0) % 2 === 1;
+    if (insideString) return null;
+
+    const precedingSpaces = /[ \t]*$/.exec(beforeBackslash)![0].length;
+    const rangeFrom = (character: number): Range => ({
+      start: { line: position.line, character },
+      end: position,
+    });
+
+    const completionItems: AnvilCompletionDetail[] = [];
+    for (const op of completionInfo.knownUnicodeOperators) {
+      const replaceRange = /^\s/.test(op.symbol)
+        ? rangeFrom(match.index - precedingSpaces)
+        : rangeFrom(match.index);
+      for (const trigger of op.triggers) {
+        const item = AnvilCompletionDetail.create(
+          `\\${trigger}`,
+          op.symbol,
+          CompletionItemKind.Operator,
+          `${op.symbol.trim()} ${op.hint}`,
+          { desc: op.description ?? undefined },
+          'builtinKeyword',
+        );
+        item.replaceRange = replaceRange;
+        item.filterText =
+          prefix.slice(replaceRange.start.character, match.index) + item.label;
+        completionItems.push(item);
+      }
+    }
     return completionItems;
   }
 

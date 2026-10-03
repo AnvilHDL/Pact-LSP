@@ -1,5 +1,7 @@
 " Vim syntax file
-" Language: AnvilHDL
+" Language: Pact (AnvilHDL with session types)
+
+scriptencoding utf-8
 
 if exists("b:current_syntax")
   finish
@@ -21,12 +23,14 @@ syn match anvilNumber "\<\d\+\('\(d\d\+\|b[01]\+\|h[0-9A-Fa-f]\+\)\)\?\>"
 syn match anvilIdentifier "\<[A-Za-z_][A-Za-z0-9_]*\>"
 
 " Types and modifiers
-syn keyword anvilType logic int dyn
+syn keyword anvilType logic int void dyn
 syn keyword anvilStorageModifier left right extern
 syn keyword anvilOtherModifier shared assigned\ by import generate generate_seq
 
 " Declaration keywords and names
-syn keyword anvilDeclaration struct enum proc spawn type func const reg chan
+syn keyword anvilDeclaration struct enum proc spawn type func const reg chan interface pool protocol
+syn match anvilInterfaceName "\(\<interface\>\s\+\(<[^>]*>\s*\)\=\)\@<=\([A-Za-z_][A-Za-z0-9_]*\)"
+syn match anvilPoolName "\(\<pool\>\s\+\)\@<=\([A-Za-z_][A-Za-z0-9_]*\)\(\s*:\)\@!"
 syn match anvilStructName "\(\<struct\>\s\+\)\@<=\([A-Za-z_][A-Za-z0-9_]*\)"
 syn match anvilEnumName "\(\<enum\>\s\+\)\@<=\([A-Za-z_][A-Za-z0-9_]*\)"
 syn match anvilProcName "\(\<proc\>\s\+\)\@<=\([A-Za-z_][A-Za-z0-9_]*\)"
@@ -61,13 +65,20 @@ syn match anvilPunctSemi ";"
 syn match anvilPunctDot "\." "contained"
 
 " Control keywords
-syn keyword anvilControl call loop recursive if else try recurse recv send dprint dfinish set cycle sync match put ready in probe
+syn keyword anvilControl call loop recursive if else try recurse irecv isend recv send dprint dfinish set cycle sync match put ready in probe offer xoffer rec
 syn keyword anvilOtherKeywords with let
 syn match anvilAssignment ":=\|="
 syn match anvilWait ">>"
 
+" Session types
+syn keyword anvilSession forall not F
+syn match anvilSessionOperator "[∀∑∏⨁⋀∈μ]\| ̸\|||"
+syn match anvilTerminal "\$"
+syn match anvilArrow "=>"
+syn match anvilHandshake "<<"
+
 " Ensure identifiers don't override other groups
-syn cluster anvilTop add=anvilCommentBlock,anvilCommentLine,anvilString,anvilNumber,anvilStructName,anvilEnumName,anvilProcName,anvilSpawnName,anvilChanFirst,anvilChanSecond,anvilChanName,anvilTypeName,anvilFuncName,anvilConstName,anvilRegName,anvilNamespaceFull,anvilTypeAnnotation,anvilOperatorConnect,anvilOperatorNamespace,anvilAssignment,anvilWait,anvilPunctComma,anvilPunctSemi,anvilPunctDot,anvilControl,anvilType,anvilDeclaration,anvilStorageModifier,anvilOtherModifier,anvilOtherKeywords
+syn cluster anvilTop add=anvilCommentBlock,anvilCommentLine,anvilString,anvilNumber,anvilStructName,anvilEnumName,anvilProcName,anvilSpawnName,anvilChanFirst,anvilChanSecond,anvilChanName,anvilTypeName,anvilFuncName,anvilConstName,anvilRegName,anvilNamespaceFull,anvilTypeAnnotation,anvilOperatorConnect,anvilOperatorNamespace,anvilAssignment,anvilWait,anvilPunctComma,anvilPunctSemi,anvilPunctDot,anvilControl,anvilType,anvilDeclaration,anvilStorageModifier,anvilOtherModifier,anvilOtherKeywords,anvilInterfaceName,anvilPoolName,anvilSession,anvilSessionOperator,anvilTerminal,anvilArrow,anvilHandshake
 
 " Link to highlight groups
 hi def link anvilCommentBlock Comment
@@ -76,6 +87,13 @@ hi def link anvilString String
 hi def link anvilNumber Number
 hi def link anvilDeclaration Keyword
 hi def link anvilStructName Type
+hi def link anvilInterfaceName Type
+hi def link anvilPoolName Type
+hi def link anvilSession Keyword
+hi def link anvilSessionOperator Operator
+hi def link anvilTerminal Operator
+hi def link anvilArrow Operator
+hi def link anvilHandshake Operator
 hi def link anvilEnumName Type
 hi def link anvilProcName Function
 hi def link anvilSpawnName Function

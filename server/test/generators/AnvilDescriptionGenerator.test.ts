@@ -14,9 +14,12 @@ import { AnvilDocument } from '../../src/core/AnvilDocument';
 import { AnvilDescriptionGenerator } from '../../src/generators/AnvilDescriptionGenerator';
 import { AnvilAst, AnvilAstNode } from '../../src/core/ast/AnvilAst';
 import { AnvilServerSettings } from '../../src/utils/AnvilServerSettings';
+import {
+  compilerBinaryPath,
+  projectRoot,
+  skipUnlessAstSupported,
+} from '../testCompiler';
 
-const projectRoot = path.resolve(__dirname, '../../..');
-const anvilBinaryPath = path.join(projectRoot, 'bin', 'anvil');
 const sampleFile = 'samples/lsp_test.anvil';
 
 describe('AnvilDescriptionGenerator', function () {
@@ -35,6 +38,7 @@ describe('AnvilDescriptionGenerator', function () {
 
   before(async function () {
     this.timeout(15_000);
+    await skipUnlessAstSupported(this);
 
     fullPath = path.join(projectRoot, sampleFile);
     doc = AnvilDocument.fromFilesystem(fullPath)!;
@@ -42,7 +46,7 @@ describe('AnvilDescriptionGenerator', function () {
 
     const settings = {
       projectRoot,
-      executablePath: anvilBinaryPath,
+      executablePath: compilerBinaryPath,
     } satisfies AnvilServerSettings;
     const compiled = await doc.compile(settings);
 
@@ -641,8 +645,8 @@ describe('AnvilDescriptionGenerator', function () {
 
         assert.match(
           output,
-          /\*\*Anvil Info:\*\*/,
-          'should include Anvil Info header',
+          /\*\*Pact Info:\*\*/,
+          'should include Pact Info header',
         );
         assert.match(
           output,
@@ -717,8 +721,8 @@ describe('AnvilDescriptionGenerator', function () {
 
         assert.match(
           output,
-          /\*\*Anvil Info:\*\*/,
-          'should include Anvil Info header',
+          /\*\*Pact Info:\*\*/,
+          'should include Pact Info header',
         );
         assert.match(
           output,
@@ -748,8 +752,8 @@ describe('AnvilDescriptionGenerator', function () {
 
         assert.match(
           output,
-          /\*\*Anvil Info:\*\*/,
-          'should include Anvil Info header',
+          /\*\*Pact Info:\*\*/,
+          'should include Pact Info header',
         );
         assert.match(
           output,
@@ -930,13 +934,13 @@ describe('AnvilDescriptionGenerator', function () {
         assert.match(output, /---/, 'should include separator');
         assert.match(
           output,
-          /\*\*Anvil Info:\*\*/,
-          'should include Anvil Info header',
+          /\*\*Pact Info:\*\*/,
+          'should include Pact Info header',
         );
 
         const codeIndex = output.indexOf('```anvil');
         const separatorIndex = output.indexOf('---');
-        const explanationIndex = output.indexOf('**Anvil Info:**');
+        const explanationIndex = output.indexOf('**Pact Info:**');
         assert.ok(
           codeIndex < separatorIndex,
           'code should appear before separator',
@@ -1067,7 +1071,7 @@ describe('AnvilDescriptionGenerator', function () {
         const segments = [
           { name: 'code', marker: '```anvil' },
           { name: 'lifetime', marker: '**Timing Contract:**' },
-          { name: 'explanations', marker: '**Anvil Info:**' },
+          { name: 'explanations', marker: '**Pact Info:**' },
         ];
 
         let lastIndex = -1;

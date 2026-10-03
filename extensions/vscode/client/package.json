@@ -1,6 +1,6 @@
 {
-	"name": "anvil-lsp-vscode-client",
-	"description": "Anvil Language Server VS Code Extension Client",
+	"name": "pact-lsp-vscode-client",
+	"description": "Pact Language Server VS Code Extension Client",
 	"license": "MIT",
 	"version": "0.0.1",
 	"publisher": "vscode",

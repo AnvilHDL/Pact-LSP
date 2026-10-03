@@ -22,8 +22,8 @@ export async function activate(context: ExtensionContext): Promise<void> {
   }
 
   const client = new LanguageClient(
-    'anvil',
-    'Anvil Language Server',
+    'pact',
+    'Pact Language Server',
     serverOptions,
     clientOptions
   )

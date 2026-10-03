@@ -18,8 +18,8 @@ footer() {
     echo
 }
 
-format-anvil() {
-    header "Formatting Anvil..."
+format-pact() {
+    header "Formatting Pact..."
     echo "Submodule is not in scope!"
     footer 0
     return 0
@@ -51,7 +51,7 @@ format-vim() {
 
 if [[ -z "$@" ]]; then
     echo "Formatting all components..."
-    format-anvil
+    format-pact
     format-server
     format-vscode
     format-vim
@@ -59,8 +59,8 @@ fi
 
 for arg in "$@"; do
     case $arg in
-        anvil)
-            format-anvil
+        pact)
+            format-pact
             ;;
         server)
             format-server
@@ -74,7 +74,7 @@ for arg in "$@"; do
         *)
             echo "Unknown argument: $arg"
             echo
-            echo "Usage: $0 [anvil|server|vscode|vim]"
+            echo "Usage: $0 [pact|server|vscode|vim]"
             echo
             echo "If no arguments are provided, all components will be built."
             echo

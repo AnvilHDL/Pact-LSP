@@ -18,22 +18,22 @@ footer() {
     echo
 }
 
-test-anvil() {
-    header "Testing Anvil..."
+test-pact() {
+    header "Testing Pact..."
 
-    if [ ! -d "./anvil/test/" ]; then
-        echo "Anvil not found. Was the Anvil submodule initialized?" 2>&1
+    if [ ! -d "./pact/test/" ]; then
+        echo "Pact not found. Was the Pact submodule initialized?" 2>&1
         footer 255
         return 255
     fi
 
-    if [ ! -x bin/anvil ]; then
-        echo "Anvil executable not found. Was the Anvil submodule built?"
+    if [ ! -x bin/pact ]; then
+        echo "Pact executable not found. Was the Pact submodule built?"
         footer 255
         return 255
     fi
 
-    echo "Anvil ready."
+    echo "Pact ready."
     footer 0
     return 0
 }
@@ -41,8 +41,8 @@ test-anvil() {
 test-server() {
     header "Testing Language Server..."
 
-    if [ ! -x bin/anvil ]; then
-        echo "Anvil binary unavailable - this test may fail unexpectedly!"
+    if [ ! -x bin/pact ]; then
+        echo "Pact binary unavailable - this test may fail unexpectedly!"
     fi
 
     cd ./server
@@ -73,7 +73,7 @@ test-vim() {
 
 if [[ -z "$@" ]]; then
     echo "Testing all components..."
-    test-anvil
+    test-pact
     test-server
     test-vscode
     test-vim
@@ -81,8 +81,8 @@ fi
 
 for arg in "$@"; do
     case $arg in
-        anvil)
-            test-anvil
+        pact)
+            test-pact
             ;;
         server)
             test-server
@@ -96,7 +96,7 @@ for arg in "$@"; do
         *)
             echo "Unknown argument: $arg"
             echo
-            echo "Usage: $0 [anvil|server|vscode|vim]"
+            echo "Usage: $0 [pact|server|vscode|vim]"
             echo
             echo "If no arguments are provided, all components will be built."
             echo

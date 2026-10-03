@@ -1,7 +1,7 @@
 {
-  "name": "anvil-coc-nvim-extension",
+  "name": "pact-coc-nvim-extension",
   "version": "0.0.0-development",
-  "description": "Anvil Language Server coc.nvim Extension",
+  "description": "Pact Language Server coc.nvim Extension",
   "author": "Wern Lim <dev@wern.cc>",
   "license": "MIT",
   "main": "./out/index.js",
@@ -31,33 +31,48 @@
   "contributes": {
     "configuration": {
       "type": "object",
-      "title": "coc-anvil configuration",
+      "title": "coc-pact configuration",
         "properties": {
-          "anvil.maxNumberOfProblems": {
+          "pact.maxNumberOfProblems": {
             "scope": "resource",
             "type": "number",
             "default": 100,
             "description": "Controls the maximum number of problems produced by the server."
           },
-          "anvil.projectRoot": {
+          "pact.projectRoot": {
             "scope": "resource",
             "type": "string",
             "default": "",
             "description": "Controls the project root path. Defaults to the workspace root."
           },
-          "anvil.executablePath": {
+          "pact.executablePath": {
             "scope": "resource",
             "type": "string",
             "default": "",
-            "description": "Path to the Anvil compiler binary. Defaults to 'anvil' in your PATH."
+            "description": "Path to the Pact compiler binary. Defaults to 'pact' in your PATH."
           },
-          "anvil.asciiOnlyIcons": {
+          "pact.compilerArgs": {
+            "scope": "resource",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "description": "Extra flags passed to the Pact compiler, e.g. [\"-disable-compat-checks\"] or [\"-strict-dtc\"]."
+          },
+          "pact.compileTimeout": {
+            "scope": "resource",
+            "type": "number",
+            "default": 15000,
+            "description": "Milliseconds before a compiler run is stopped and reported as timed out. 0 disables the limit."
+          },
+          "pact.asciiOnlyIcons": {
             "scope": "window",
             "type": "boolean",
             "default": false,
             "description": "Use ASCII-only characters instead of Unicode when displaying symbols or icons."
           },
-          "anvil.showTimingInfo": {
+          "pact.showTimingInfo": {
             "scope": "window",
             "default": { "asInlayHints": "condensed", "onHover": true },
             "description": "Controls how clock-cycle timing and expression lifetime information is shown in the editor.",
@@ -109,34 +124,34 @@
               }
             ]
           },
-          "anvil.showSyntaxHelp": {
+          "pact.showSyntaxHelp": {
             "scope": "window",
             "default": { "onHover": true, "onAutocomplete": "anvilKeywords", "includeExamples": false },
-            "description": "Controls whether explanations of Anvil syntax are shown in hover tooltips and autocomplete popups.",
+            "description": "Controls whether explanations of Pact syntax are shown in hover tooltips and autocomplete popups.",
             "oneOf": [
               {
                 "type": "boolean",
-                "description": "`true` enables explanations on hover and for built-in Anvil keyword completions. `false` disables all explanations."
+                "description": "`true` enables explanations on hover and for built-in Pact keyword completions. `false` disables all explanations."
               },
               {
                 "type": "object",
-                "description": "Fine-grained control over where Anvil concept explanations appear.",
+                "description": "Fine-grained control over where Pact concept explanations appear.",
                 "properties": {
                   "onHover": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Show Anvil concept explanations when hovering over nodes."
+                    "description": "Show Pact concept explanations when hovering over nodes."
                   },
                   "onAutocomplete": {
                     "default": "anvilKeywords",
-                    "description": "Show Anvil concept explanations in autocomplete documentation popups.",
+                    "description": "Show Pact concept explanations in autocomplete documentation popups.",
                     "oneOf": [
                       {
                         "type": "string",
                         "enum": ["none", "anvilKeywords", "all"],
                         "enumDescriptions": [
                           "Never show explanations in autocomplete popups.",
-                          "Show explanations only for built-in Anvil keywords and operators.",
+                          "Show explanations only for built-in Pact keywords and operators.",
                           "Show explanations for all completions, including user-defined identifiers."
                         ]
                       },
@@ -149,7 +164,7 @@
                   "includeExamples": {
                     "type": "boolean",
                     "default": false,
-                    "description": "When `true`, code examples from the Anvil language reference are included in syntax help explanations. Only applies when syntax explanations are active (`onHover` or `onAutocomplete`)."
+                    "description": "When `true`, code examples from the Pact language reference are included in syntax help explanations. Only applies when syntax explanations are active (`onHover` or `onAutocomplete`)."
                   }
                 },
                 "additionalProperties": false

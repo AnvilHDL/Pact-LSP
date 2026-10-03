@@ -43,8 +43,8 @@ export function activate(context: ExtensionContext) {
 
 	// Create the language client and start the client.
 	client = new LanguageClient(
-		'anvil',
-		'Anvil Language Server',
+		'pact',
+		'Pact Language Server',
 		serverOptions,
 		clientOptions
 	);

@@ -7,7 +7,7 @@ import {
   AnvilMessageDefSchema,
   AnvilMessageSyncMode,
 } from '../core/ast/schema';
-import { astNodeInfo } from '../info/parsed';
+import { astNodeInfo, completionInfo } from '../info/parsed';
 import { diagnosticsLogger } from '../utils/logger';
 import {
   formatCycleTime,
@@ -704,7 +704,7 @@ export class AnvilDescriptionGenerator {
         const sep = hasAbove ? '\n\n---\n\n' : '';
 
         explanationSegment =
-          sep + '**Anvil Info:**\n\n' + entry.description + '\n';
+          sep + '**Pact Info:**\n\n' + entry.description + '\n';
 
         if (segments?.examples && entry.examples) {
           explanationSegment += '\n**Examples:**\n\n' + entry.examples + '\n';
@@ -754,5 +754,60 @@ export class AnvilDescriptionGenerator {
       examples: true,
       debug: false,
     });
+  }
+
+  /**
+   * Explains a built-in keyword or Unicode operator from the static syntax
+   * tables, for hovers where no AST node is available. Returns null for
+   * tokens that are unknown or undocumented.
+   */
+  static describeKeyword(
+    token: string,
+    options?: { examples?: boolean },
+  ): string | null {
+    // Symbols lexed with a leading space (e.g. ` ̸`) are found from their
+    // combining character alone.
+    const op =
+      completionInfo.getUnicodeOperator(token) ??
+      completionInfo.getUnicodeOperator(' ' + token);
+    if (op) {
+      if (!op.description) return null;
+      const ascii = op.ascii ? ` (ASCII: \`${op.ascii}\`)` : '';
+      return (
+        `\`${op.symbol}\` *${op.hint}*${ascii}\n\n---\n\n` +
+        '**Pact Info:**\n\n' +
+        op.description +
+        '\n'
+      );
+    }
+
+    const variants = completionInfo.getKeywordMetadata(token)?.variants ?? [];
+    const descriptions = [
+      ...new Set(variants.map((v) => v.description).filter((d) => d)),
+    ];
+    if (descriptions.length === 0) return null;
+
+    const hints = [...new Set(variants.map((v) => v.hint))].join(', ');
+    let result =
+      `\`${token}\` *${hints}*\n\n---\n\n` +
+      '**Pact Info:**\n\n' +
+      descriptions.join('\n\n') +
+      '\n';
+
+    if (options?.examples) {
+      const examples = [
+        ...new Set(
+          variants.map((v) => {
+            if (!v.astKind) return null;
+            const [kind, type] = v.astKind.split('/');
+            return astNodeInfo.getFrom(kind, type)?.examples ?? null;
+          }),
+        ),
+      ].filter((e) => e);
+      if (examples.length > 0) {
+        result += '\n**Examples:**\n\n' + examples.join('\n\n') + '\n';
+      }
+    }
+    return result;
   }
 }

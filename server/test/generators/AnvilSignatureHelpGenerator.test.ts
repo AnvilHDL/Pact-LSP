@@ -17,9 +17,12 @@ import { AnvilDocument } from '../../src/core/AnvilDocument';
 import { AnvilSignatureHelpGenerator } from '../../src/generators/AnvilSignatureHelpGenerator';
 import { AnvilAstNode } from '../../src/core/ast/AnvilAst';
 import { AnvilServerSettings } from '../../src/utils/AnvilServerSettings';
+import {
+  compilerBinaryPath,
+  projectRoot,
+  skipUnlessAstSupported,
+} from '../testCompiler';
 
-const projectRoot = path.resolve(__dirname, '../../..');
-const anvilBinaryPath = path.join(projectRoot, 'bin', 'anvil');
 const sampleFile = 'samples/lsp_test.anvil';
 
 describe('AnvilSignatureHelpGenerator', function () {
@@ -32,6 +35,7 @@ describe('AnvilSignatureHelpGenerator', function () {
 
   before(async function () {
     this.timeout(15_000);
+    await skipUnlessAstSupported(this);
 
     fullPath = path.join(projectRoot, sampleFile);
     doc = AnvilDocument.fromFilesystem(fullPath)!;
@@ -39,7 +43,7 @@ describe('AnvilSignatureHelpGenerator', function () {
 
     const settings = {
       projectRoot,
-      executablePath: anvilBinaryPath,
+      executablePath: compilerBinaryPath,
     } satisfies AnvilServerSettings;
     const compiled = await doc.compile(settings);
 

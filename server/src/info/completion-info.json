@@ -362,6 +362,111 @@
       "hint": "join",
       "lspKind": "Operator",
       "astKind": "expr/join"
+    },
+    "_comment_pact": "Pact extensions: session types, interfaces, pools, offers, and one-way (instantaneous) messages.",
+
+    "interface": {
+      "category": "declaration",
+      "hint": "declaration",
+      "lspKind": "Keyword",
+      "snippet": "interface $1($2) = $3",
+      "description": "Declares an **interface**: a named session type describing the order and timing of messages over a list of endpoints.\n\nA process takes interfaces instead of endpoint arguments (`proc p(i1, i2)`); the endpoints they name become available in its body, and the *i*-th interface constrains the *i*-th thread. Pools instantiate interfaces to check that processes are compatible.\n\nOptional data-type parameters go **before** the name. There is no terminator: a trailing `;` is read as sequencing and causes a syntax error.\n\n**Example:**\n\n```anvil\ninterface left_if (ep : left ch) = ep.req ; ep.ack ; #1\ninterface <T : type> data_if (ep : left ch<T>) = ep.req\n\nproc worker(left_if) {\n    loop { let x = recv ep.req >> send ep.ack(1'd1) >> cycle 1 }\n}\n```"
+    },
+
+    "pool": {
+      "category": ["declaration", "declaration"],
+      "hint": ["declaration", "declaration"],
+      "lspKind": "Keyword",
+      "snippet": [null, "pool $1 : $2;"],
+      "scope": [null, "proc_def"],
+      "description": [
+        "Declares a **pool**: a set of channels plus the interfaces that use their endpoints. The compiler checks that the session types of the members are compatible.\n\nChannels are listed as `left -- right : ChannelClass`, then a mandatory `;`, then members as `name : interface(endpoints...)` or `name : <session type>`.\n\n**Example:**\n\n```anvil\npool my_pool {\n    a -- b : ch;\n    m1 : i_left(a),\n    m2 : i_right(b)\n}\n```",
+        "Instantiates a **pool** inside a process body. Processes are then spawned against its members with `spawn Proc[pool.member]`.\n\n**Example:**\n\n```anvil\nproc top() {\n    pool p : my_pool;\n    spawn worker[p.m1];\n    spawn driver[p.m2];\n    loop { cycle 100 >> dfinish }\n}\n```"
+      ]
+    },
+
+    "protocol": {
+      "category": "declaration",
+      "hint": "declaration",
+      "lspKind": "Keyword",
+      "snippet": "protocol :: $1",
+      "description": "Attaches a channel-local session type to a channel class. It goes last in the `chan` body, with **no comma** after the final message. The session type refers to the endpoint by the name of the process argument that uses the channel.\n\n**Example:**\n\n```anvil\nchan ch {\n    left req : (logic@#1),\n    right ack : (logic@#1)\n    protocol :: (ep.req ; ep.ack)\n}\n```"
+    },
+
+    "offer": {
+      "category": "control",
+      "hint": "control",
+      "lspKind": "Keyword",
+      "description": "An **offer**: waits for the messages of its arms. Several arms may be taken together, each running its body.\n\nArms are `x = recv ep.m => e`, `send ep.m(v) => e`, their instantaneous forms `x = irecv ep.m => e` and `isend ep.m(v) => e`, or a conjunction `{a = recv ep.m1; b = recv ep.m2} => e` (separated by `;`). Blocking and instantaneous arms cannot be mixed. With instantaneous arms only, an optional `else { e }` runs when no arm is taken.\n\n`offer { ... } match { ... }` continues with the case for exactly the set of arms taken: `ep.m => e`, `{ep.a, ep.b} => e`, or `_ => e`. It cannot have an `else`.\n\nCorresponds to `&( ... )` / `⋀( ... )` in session types.\n\n**Example:**\n\n```anvil\noffer {\n    addr = recv rd.req => send rd.res(*mem[addr]),\n    inp = recv wr.req => set mem[inp.addr] := inp.data\n}\n\noffer {\n    x = irecv ep.req => cycle 1\n} else { cycle 2 }\n```"
+    },
+
+    "xoffer": {
+      "category": "control",
+      "hint": "control",
+      "lspKind": "Keyword",
+      "description": "An **exclusive offer**: takes exactly one of its arms. Arms use the same forms as `offer`. Blocking and instantaneous arms cannot be mixed, and an optional `else { e }`, allowed only with instantaneous arms, runs when none is available.\n\nAn optional selector wire chooses which arm wins when several are ready: `xoffer sel { ... }` (or `xoffer rotate sel`) tries arm `sel + i` at step `i`; `xoffer tree sel` tries arm `sel XOR i`, as a binary-tree round-robin arbiter.\n\nCorresponds to `^( ... )` / `⨁( ... )` in session types.\n\n**Example:**\n\n```anvil\nxoffer {\n    x = recv ep.req => cycle 5,\n    y = recv ep.ack => cycle 3\n} >> cycle 1\n```"
+    },
+
+    "isend": {
+      "category": "control",
+      "hint": "control",
+      "lspKind": "Keyword",
+      "description": "An **instantaneous send**: like `send`, but with a one-way handshake. The sender does not wait for the receiver to acknowledge.\n\n**Example:**\n\n```anvil\nisend ep.req(2'd1) >> cycle 1\n```"
+    },
+
+    "irecv": {
+      "category": "control",
+      "hint": "control",
+      "lspKind": "Keyword",
+      "description": "An **instantaneous receive**: like `recv`, but with a one-way handshake. The receiver does not acknowledge the sender.\n\n**Example:**\n\n```anvil\nlet v = irecv ep.req >> cycle 1\n```"
+    },
+
+    "try isend": {
+      "category": "control",
+      "hint": "control",
+      "lspKind": "Keyword",
+      "snippet": "try isend $1",
+      "description": "Attempts an instantaneous send (`isend`) and branches on whether it happened this cycle.\n\n**Example:**\n\n```anvil\ntry isend o.out(1'd1) { cycle 1 } else { cycle 2 }\n```"
+    },
+
+    "try irecv": {
+      "category": "control",
+      "hint": "control",
+      "lspKind": "Keyword",
+      "snippet": "try $1 = irecv $2",
+      "description": "Attempts an instantaneous receive (`irecv`) and branches on whether a value arrived this cycle.\n\n**Example:**\n\n```anvil\ntry x = irecv ep.req { dprint \"got %d\" (x) >> cycle 1 } else { cycle 1 }\n```"
+    },
+
+    "rec": {
+      "category": ["control", "session"],
+      "hint": ["control", "session type"],
+      "lspKind": "Keyword",
+      "description": [
+        "Defines a named **recursive block** in an expression. `recurse X` inside it restarts the block. `μ X { ... }` is equivalent.\n\n**Example:**\n\n```anvil\nrec X {\n    let x = recv ep.req >>\n    if x == 1'd1 { recurse X } else { cycle 1 }\n}\n```",
+        "Defines a **recursive session type** `rec X . s`, where `X` inside `s` refers back to the whole type. `μ X . s` is equivalent.\n\nThe body binds a single atom, so parenthesize it: `rec X . (ep.req ; X)` rather than `rec X . ep.req ; X`.\n\n**Example:**\n\n```anvil\ninterface i1 (ep : left ch) = #1 ; rec X . (ep.req + (#1 ; X)) ; #1\n```"
+      ]
+    },
+
+    "forall": {
+      "category": "session",
+      "hint": "session type",
+      "lspKind": "Keyword",
+      "snippet": "forall ($1 : [$2..$3]) $4 { $5 }",
+      "description": "A **quantified session type** over an integer range, for indexed endpoints such as `ep[i]`. `∀` is equivalent, and `∈` may replace `:`.\n\n`forall (i : [a..b]) OP { s }` combines the copies of `s` with `OP`: `+`/`∑` (choice) or `||`/`∏` (parallel). With `&`/`⋀` or `^`/`⨁`, the braces hold offer arms instead.\n\nBounds must be integer literals. Indices can be excluded with `not 2` or `not (2, 4)`.\n\n**Example:**\n\n```anvil\nforall (i : [1..3] not 2) + { ep[i].req ; #1 }\n∀ (i ∈ [1..3]) ⨁ { ep[i].req : #1, * : #3 }\n```"
+    },
+
+    "not": {
+      "category": "session",
+      "hint": "session type",
+      "lspKind": "Keyword",
+      "description": "Excludes indices from a `forall` range: `not 2` or `not (2, 4)`. ` ̸` is equivalent.\n\n**Example:**\n\n```anvil\nforall (i : [1..5] not (2, 4)) || { ep[i].data ; #1 }\n```"
+    },
+
+    "F": {
+      "category": "session",
+      "hint": "session type",
+      "lspKind": "Keyword",
+      "description": "The **future** operator in session types: `F s` means `s` happens at some later point rather than immediately. `F` binds tighter than every binary session operator and is a reserved word.\n\n**Example:**\n\n```anvil\ninterface mem_itfc (rd : right read_ch) = rd.req ; F #rd.res ; #1\n```"
     }
   },
 
@@ -442,6 +547,58 @@
         "astKind": "message_sync_mode/dependent",
         "description": "**Dependent synchronization**: The message is sent/received `N` cycles after the referenced message `%s`."
       }
+    }
+  },
+
+  "unicodeOperators": {
+    "_comment": "Unicode session-type operators, keyed by the symbol. Typing a backslash followed by a trigger (e.g. \\sum) offers the symbol. Every symbol has an ASCII equivalent.",
+    "∑": {
+      "triggers": ["sum"],
+      "hint": "n-ary choice",
+      "ascii": "+",
+      "description": "**N-ary internal choice** in session types: `∑(s1, s2, ...)` is `s1 + s2 + ...`. Also the choice operator of `forall`.\n\n```anvil\n∑(ep.req, ep.ack ; #1)\n```"
+    },
+    "∏": {
+      "triggers": ["prod"],
+      "hint": "n-ary parallel",
+      "ascii": "||",
+      "description": "**N-ary parallel composition** in session types: `∏(s1, s2, ...)` is `s1 || s2 || ...`. Also the parallel operator of `forall`.\n\n```anvil\n∀ (i ∈ [1..3]) ∏ { ep[i].data ; #1 }\n```"
+    },
+    "⋀": {
+      "triggers": ["and", "wedge"],
+      "hint": "offer",
+      "ascii": "&",
+      "description": "**Offer** in session types: `⋀(arms)` waits for the triggers of its arms, any of which may be taken together. `⋀(arms).(cases)` continues by the exact set of arms taken. Arms are `ep.m : cont`, `#ep.m`, `* : cont` (wildcard), `$ s` (terminal), or `{ep.a, ep.b} : cont`.\n\n```anvil\n⋀(ep.m1 : ep.m2, * : ep.m3)\n```"
+    },
+    "⨁": {
+      "triggers": ["xor", "oplus"],
+      "hint": "exclusive offer",
+      "ascii": "^",
+      "description": "**Exclusive offer** in session types: `⨁(arms)` takes exactly one of its arms. Arms use the same forms as `⋀`.\n\n```anvil\nrec X . ⨁(#ep.req, * : #1 ; X)\n```"
+    },
+    "∀": {
+      "triggers": ["forall"],
+      "hint": "quantifier",
+      "ascii": "forall",
+      "description": "**Quantifier** over an integer range: `∀ (i ∈ [a..b]) OP { s }` combines copies of `s` for each `i` with `∑`, `∏`, `⋀` or `⨁`.\n\n```anvil\n∀ (i ∈ [1..5] ̸ (2,4)) ∏ { ep[i].data ; #1 }\n```"
+    },
+    "∈": {
+      "triggers": ["in"],
+      "hint": "range binder",
+      "ascii": ":",
+      "description": "Binds a `∀` index to a range: `∀ (i ∈ [1..3]) ...`."
+    },
+    "μ": {
+      "triggers": ["mu", "rec"],
+      "hint": "recursion",
+      "ascii": "rec",
+      "description": "**Recursion**: `μ X . s` in session types, or `μ X { e }` in expressions (restarted by `recurse X`). Parenthesize session-type bodies: `μ X . (ep.req ; X)`.\n\n```anvil\ninterface i1 (ep : left ch) = #1 ; μ X . (ep.req + (#1 ; X)) ; #1\n```"
+    },
+    " ̸": {
+      "triggers": ["not"],
+      "hint": "exclusion",
+      "ascii": "not",
+      "description": "Excludes indices from a `∀` range: `[1..5] ̸ (2,4)` or `[1..5] ̸2`. The symbol is lexed as **exactly one space** followed by U+0338, so it must not be preceded by extra whitespace."
     }
   }
 }

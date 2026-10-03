@@ -17,6 +17,8 @@ export class AnvilDocument {
   private _anvilAst: AnvilAst | null = null;
   private _anvilErrors: AnvilCompilationResult['errors'] | null = null;
   private _postAstTextEdited: ({ add: Range } | { del: Range })[] = [];
+  /** Whether the compiler produces an AST (`-ast`); null until the first compile. */
+  private _astSupported: boolean | null = null;
 
   private readonly EXPERIMENTAL_TRACK_POST_AST_TEXT_EDITS = true;
 
@@ -106,8 +108,16 @@ export class AnvilDocument {
     return this._anvilErrors;
   }
 
+  /** Whether the compiler produces an AST; null if unknown (not compiled yet). */
+  public get astSupported(): boolean | null {
+    return this._astSupported;
+  }
+
   public get isResultsUpToDate(): boolean {
-    return this._anvilAst !== null && this._postAstTextEdited.length === 0;
+    return (
+      (this._anvilAst !== null || this._astSupported === false) &&
+      this._postAstTextEdited.length === 0
+    );
   }
 
   // Actions
@@ -134,6 +144,10 @@ export class AnvilDocument {
       const compiler = new AnvilCompiler(
         settings.projectRoot,
         settings.executablePath,
+        {
+          extraArgs: settings.compilerArgs,
+          timeoutMs: settings.compileTimeout,
+        },
       );
 
       // backup pre-compile state
@@ -144,10 +158,17 @@ export class AnvilDocument {
       this.resetAstCache();
       const result = await compiler.compile([filePath], fileData);
 
+      if (result.astSupported !== undefined) {
+        this._astSupported = result.astSupported;
+      }
+
       // check for a new AST or to restore
       if (result.ast) {
         // success, update AST cache
         this._anvilAst = result.ast ?? null;
+      } else if (result.astSupported === false) {
+        // the compiler never produces an AST; only edits made since this
+        // compile's snapshot are needed to remap its diagnostics
       } else {
         // failed, restore AST cache
         this._anvilAst = prevAst;
@@ -163,6 +184,19 @@ export class AnvilDocument {
     })();
 
     return this._compileLock;
+  }
+
+  /**
+   * Compiles the document if no AST is cached, unless the compiler is known
+   * not to produce one. Returns the cached (possibly outdated) AST, or null.
+   */
+  public async ensureAst(
+    settings: AnvilServerSettings,
+  ): Promise<AnvilAst | null> {
+    if (!this._anvilAst && this._astSupported !== false) {
+      await this.compile(settings);
+    }
+    return this._anvilAst;
   }
 
   private _compileDebounceFireHandlers: (() => Promise<unknown>)[] = [];
@@ -250,6 +284,26 @@ export class AnvilDocument {
       .filter((x) => x)
       .filter((x) => x?.match(/[a-zA-Z0-9_]/))
       .join('');
+  }
+
+  /**
+   * The identifier or keyword at a position, or else the single non-space
+   * character at or just before it (e.g. a Unicode operator such as `∑`).
+   */
+  public getTokenAtLspPosition(position: Position): string | null {
+    const identifier = this.getClosestIdentifierToLspPosition(position);
+    if (identifier) return identifier;
+
+    const { line } = position;
+    for (const character of [position.character, position.character - 1]) {
+      if (character < 0) continue;
+      const ch = this.textDocument.getText({
+        start: { line, character },
+        end: { line, character: character + 1 },
+      });
+      if (ch.trim()) return ch;
+    }
+    return null;
   }
 
   public getClosestAnvilNodeToLspPosition(

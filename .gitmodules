@@ -1,4 +1,4 @@
-[submodule "anvil"]
-	path = anvil
-	url = git@github.com:wxwern/anvil.git
-	branch = add-annotated-ast-output
+[submodule "pact"]
+	path = pact
+	url = https://github.com/arj4web/Pact.git
+	branch = overhead-inspection

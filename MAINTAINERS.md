@@ -1,6 +1,6 @@
-# Anvil Language Server Development Guide
+# Pact Language Server Development Guide
 
-This document is for developers and maintainers working on the Anvil Language Server repository itself.
+This document is for developers and maintainers working on the Pact Language Server repository itself.
 
 If you only want to install and use the language server, start with [`README.md`](README.md).
 If you want the current end-user feature matrix, see [`LSP.md`](LSP.md).
@@ -9,8 +9,8 @@ If you want the current end-user feature matrix, see [`LSP.md`](LSP.md).
 
 This repository contains three distinct pieces that work together:
 
-1. `anvil/`
-   The Anvil compiler/toolchain submodule. The language server does not parse Anvil source by itself; it shells out to the compiler and consumes its experimental AST JSON output.
+1. `pact/`
+   The Pact compiler/toolchain submodule. The language server does not parse Pact source by itself; it shells out to the compiler and consumes its JSON output (diagnostics, and an annotated AST once the compiler supports `-ast`).
 2. `server/`
    The TypeScript language server implementation. This is the main codebase most contributors will work in.
 3. `extensions/`
@@ -26,13 +26,45 @@ At the repository root, the canonical workflows are encoded in:
 
 Prefer those scripts unless you have a specific reason to run component-local commands directly.
 
+## Pact Fork Notes
+
+This repository is a fork of [anvil-lsp](https://github.com/AnvilHDL/anvil-lsp), kept as the `upstream` remote. To pick up upstream fixes:
+
+```bash
+git fetch upstream
+git cherry-pick <commit>   # or merge upstream/main
+```
+
+Internal TypeScript names (`AnvilDocument`, `AnvilCompiler`, `AnvilAst`, the `anvil` language ID, `source.anvil` scope) are intentionally unchanged so upstream changes apply cleanly. User-facing names (extension names, the `pact.*` settings, messages) are Pact-specific.
+
+### Compiler capabilities
+
+`AnvilCompiler.getCapabilities()` runs the compiler with `-help` and looks for optional flags. Results are cached per binary and refreshed when a binary given by path is rebuilt.
+
+- `-just-check` is passed when available, so the compiler skips code generation.
+- `-ast` is passed when available. Without it, `AnvilCompilationResult.astSupported` is `false`. `AnvilDocument` then treats each compile as complete without an AST, and `ensureAst()` does not recompile on every request. AST-based handlers return nothing, and hover falls back to `AnvilDescriptionGenerator.describeKeyword()`.
+
+The server tests follow the same rule: suites that need an AST call `skipUnlessAstSupported()` from `server/test/testCompiler.ts` and are skipped (reported as pending) until the compiler supports `-ast`. Set `PACT_BIN` to test against a different compiler build.
+
+### Roadmap: AST output in the Pact compiler
+
+The semantic features need Pact to emit the same AST JSON as the Anvil `add-annotated-ast-output` branch ([`wxwern/anvil@f1fd09b`](https://github.com/wxwern/anvil/tree/add-annotated-ast-output)), schema `v0.1.0`, as described by `server/src/core/ast/schema.ts`. That branch adds `def_span` and `action_event` to every `ast_node`, spans to definitions, and the serializer modules `astJsonSerializer*.ml`, `astAnnotator.ml` and `errorCollector.ml`. Pact diverged from Anvil before that branch, so it needs porting, plus serialization of the Pact-only constructs:
+
+- `compilation_unit.session_defs` (interfaces) and `pools`
+- `channel_class_def.local_sty` (`protocol ::`) and message handshake markers (`<<`, `>>`)
+- `proc_def.interface` (interface-typed procs), `proc_def_body.pool_insts`, `spawn_def.interface_params`
+- expressions: `offer`, `xoffer`, offer-`match`, `isend`/`irecv` (`send_handshake`/`recv_handshake`), `rec X { }`/`recurse X`
+- session types, for hover and session-state hints
+
+Once the compiler emits these, extend `schema.ts`, `AnvilAst.ts` and `ast-node-info.json` for the new node kinds. It would also help if the compiler included warnings in its JSON output; today it prints them to stderr.
+
 ## High-Level Architecture
 
 At runtime, the system looks like this:
 
 1. An editor extension starts the TypeScript server over Node IPC.
 2. The server receives LSP requests and keeps per-document state in memory.
-3. When semantic information is needed, the server invokes the Anvil compiler with `-ast -json`.
+3. When semantic information is needed, the server invokes the Pact compiler with `-json`, adding `-ast` and `-just-check` when the compiler supports them.
 4. The compiler returns diagnostics plus an AST payload.
 5. The server parses that AST into typed wrapper objects and answers LSP requests such as hover, completion, signature help, definitions, references, diagnostics, and inlay hints.
 
@@ -47,14 +79,14 @@ The most important design constraint in this repository is that semantic feature
 - `build.sh`: build/install orchestration for all components.
 - `test.sh`: test orchestration for all components.
 - `format.sh`: formatting orchestration.
-- `samples/`: shared Anvil source files used by server tests.
-- `bin/anvil`: expected local compiler binary path after building the compiler.
+- `samples/`: shared source files used by server tests. Pact-only designs are in `samples/pact/`.
+- `bin/pact`: expected local compiler binary path after building the compiler.
 
 ### Language Server
 
 - `server/src/server.ts`: LSP entrypoint, capability declaration, event wiring, and request routing.
 - `server/src/core/AnvilDocument.ts`: per-document runtime state, cached AST/errors, compile debounce, edit tracking, and span mapping.
-- `server/src/core/AnvilCompiler.ts`: wrapper around the `anvil` compiler process.
+- `server/src/core/AnvilCompiler.ts`: wrapper around the `pact` compiler process.
 - `server/src/core/ast/`: typed AST schema and navigation helpers.
 - `server/src/generators/`: feature-specific logic.
 - `server/src/info/`: static completion and documentation metadata in JSON form.
@@ -74,16 +106,16 @@ You need:
 
 - Node.js 22 or later.
 - `npm`.
-- `opam`, `dune`, and an OCaml toolchain if you need to build the bundled Anvil compiler.
+- `opam`, `dune`, and an OCaml toolchain if you need to build the bundled Pact compiler.
 
-The server tests depend on a working `bin/anvil`, so a compiler build is normally required for meaningful server development.
+The server tests depend on a working `bin/pact`, so a compiler build is normally required for meaningful server development.
 
 ### Clone And Initialize
 
 Clone with submodules if possible:
 
 ```bash
-git clone --recurse-submodules https://github.com/focs-lab/anvil-lsp.git
+git clone --recurse-submodules <repository-url> pact-lsp
 ```
 
 If you already cloned without submodules:
@@ -102,21 +134,21 @@ The simplest full setup is:
 
 That script will:
 
-1. Build the `anvil/` submodule using `opam` and `dune`.
+1. Build the `pact/` submodule using `opam` and `dune`.
 2. Install server dependencies and build/lint the server.
 3. Install extension dependencies and build the editor clients.
 
 If you only want the language server and not the editor clients:
 
 ```bash
-./build.sh anvil server
+./build.sh pact server
 ```
 
 ### Important Setup Notes
 
-- Always build Anvil before relying on server tests. The server expects `bin/anvil` to exist.
+- Always build Pact before relying on server tests. The server expects `bin/pact` to exist (or `PACT_BIN` to be set).
 - The server expects a compiler version with experimental AST JSON support. The pinned submodule version in this repository is the supported one.
-- Before running `dune` or `opam` commands manually inside `anvil/`, remember to load the `opam` environment:
+- Before running `dune` or `opam` commands manually inside `pact/`, remember to load the `opam` environment:
 
 ```bash
 eval $(opam env)
@@ -155,7 +187,7 @@ npm run format
 
 Notes:
 
-- `./format.sh` intentionally does not format the `anvil/` submodule.
+- `./format.sh` intentionally does not format the `pact/` submodule.
 - In non-interactive environments, `./test.sh server` runs Mocha with a minimal reporter.
 - The server test suite uses files in `samples/`.
 
@@ -202,7 +234,7 @@ There is no rename/refactor support yet.
 
 ### Document State: `server/src/core/AnvilDocument.ts`
 
-`AnvilDocument` is the core runtime object for a single `.anvil` file.
+`AnvilDocument` is the core runtime object for a single `.anvil` source file.
 
 It owns:
 
@@ -219,11 +251,13 @@ That remapping is explicitly experimental. If you are changing position-sensitiv
 
 ### Compiler Bridge: `server/src/core/AnvilCompiler.ts`
 
-`AnvilCompiler` shells out to the Anvil compiler process.
+`AnvilCompiler` shells out to the Pact compiler process.
 
 Key facts:
 
-- It runs `anvil -ast -json`.
+- It runs `pact -json`, plus `-ast` and `-just-check` when the compiler's `-help` lists them (see [Compiler capabilities](#compiler-capabilities)).
+- It prepends user-configured `pact.compilerArgs` and stops compiler runs that exceed `pact.compileTimeout`.
+- It reports compiler crashes (no JSON on stdout) as a file-level diagnostic with the compiler's stderr.
 - For open documents, it can pass in-memory file contents via `-stdin`.
 - It currently supports compiling one file at a time for language-server purposes.
 - It parses JSON compiler output into a normalized `AnvilCompilationResult`.
@@ -431,12 +465,14 @@ Server settings are defined in `server/src/utils/AnvilServerSettings.ts`.
 
 Important settings include:
 
-- `anvil.maxNumberOfProblems`
-- `anvil.projectRoot`
-- `anvil.executablePath`
-- `anvil.showTimingInfo`
-- `anvil.showSyntaxHelp`
-- `anvil.debug`
+- `pact.maxNumberOfProblems`
+- `pact.projectRoot`
+- `pact.executablePath`
+- `pact.compilerArgs`
+- `pact.compileTimeout`
+- `pact.showTimingInfo`
+- `pact.showSyntaxHelp`
+- `pact.debug`
 
 Two important details:
 
@@ -723,7 +759,7 @@ npm run test
 If tests fail because the compiler is missing, build Anvil first:
 
 ```bash
-./build.sh anvil
+./build.sh pact
 ```
 
 ### When To Add Or Update Tests
@@ -742,7 +778,7 @@ If you change feature behavior and no test clearly exercises it, add one.
 
 ### Samples And Fixtures
 
-The `samples/` directory contains the Anvil source files used by tests.
+The `samples/` directory contains the source files used by tests. `samples/pact/` holds Pact session-typed designs.
 
 Use it when:
 
@@ -753,7 +789,7 @@ Keep sample changes intentional. Many tests rely on stable source locations.
 
 ## Common Maintainer Pitfalls
 
-- Forgetting to initialize or build the `anvil/` submodule before running server tests.
+- Forgetting to initialize or build the `pact/` submodule before running server tests.
 - Editing generated `out/` files instead of `src/` files.
 - Updating server settings without updating both extension manifests.
 - Changing compiler AST assumptions without updating `schema.ts` and related tests.
@@ -768,9 +804,9 @@ Keep sample changes intentional. Many tests rely on stable source locations.
 
 Check:
 
-1. `bin/anvil` exists.
-2. the configured `anvil.executablePath` is correct.
-3. the compiler version supports experimental AST JSON output.
+1. `bin/pact` exists.
+2. the configured `pact.executablePath` is correct.
+3. the compiler supports `-ast` (it is listed by `pact -help`). The current Pact compiler does not, so these features are expected to be empty until it does.
 4. `server/src/core/ast/schema.ts` still matches the compiler output.
 
 ### Tests Fail With Compiler Errors Or Missing Binary
@@ -778,10 +814,10 @@ Check:
 Run:
 
 ```bash
-./build.sh anvil
+./build.sh pact
 ```
 
-If building manually inside `anvil/`, remember:
+If building manually inside `pact/`, remember:
 
 ```bash
 eval $(opam env)

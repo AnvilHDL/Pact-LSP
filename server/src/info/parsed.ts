@@ -134,6 +134,19 @@ export interface TimingInfoEntry {
   description: string | null;
 }
 
+export interface UnicodeOperatorInfoEntry {
+  /** The Unicode symbol inserted into the source, e.g. `∑`. */
+  symbol: string;
+  /** Names typed after a backslash to insert the symbol, e.g. `sum` for `\sum`. */
+  triggers: string[];
+  /** Short detail string shown in the completion list. */
+  hint: string;
+  /** Equivalent ASCII keyword accepted by the compiler, or null if none. */
+  ascii: string | null;
+  /** Markdown documentation for completion docs and hover, or null if absent. */
+  description: string | null;
+}
+
 export interface AstNodeInfoEntry {
   /** Short human-readable label, used as the node name in explanations. */
   name: string;
@@ -143,7 +156,7 @@ export interface AstNodeInfoEntry {
   examples: string | null;
   /**
    * True for internal/compiler-only nodes that should not appear in the
-   * user-facing "Anvil Info" explanation section.
+   * user-facing "Pact Info" explanation section.
    */
   internal: boolean;
 }
@@ -166,6 +179,9 @@ export interface AstNodeInfoEntry {
 //       lifetime: { <pattern>: RawTimingEntry }
 //       sync: { <pattern>: RawTimingEntry }
 //     }
+//     unicodeOperators?: {
+//       <symbol>: RawUnicodeOperatorEntry | comment-string
+//     }
 //   }
 //
 // Runtime consumers:
@@ -178,6 +194,9 @@ export interface AstNodeInfoEntry {
 //   - `timingCompletions` entries are used only by the timing-annotation
 //     completion heuristic in
 //     `AnvilCompletionGenerator.checkTimingAnnotHeuristics()`.
+//   - `unicodeOperators` entries are offered after a backslash by
+//     `AnvilCompletionGenerator.checkUnicodeOperatorHeuristics()` (e.g. `\sum`
+//     inserts `∑`) and explain the symbol on hover when no AST is available.
 //
 // Documentation back-fill:
 //   Any completion entry carrying a non-null `astKind` may omit its own
@@ -202,7 +221,7 @@ const RawCompletionKindEntrySchema = z.object({
 //
 // Runtime consumers:
 //   - `AstNodeInfo.getFor()` is used by `AnvilDescriptionGenerator` to render
-//     the "Anvil Info" explanation block on hover and completion docs.
+//     the "Pact Info" explanation block on hover and completion docs.
 //   - `CompletionInfo` also consults this table to back-fill missing
 //     descriptions for completion and timing-completion entries that specify an
 //     `astKind` but no explicit `description`.
@@ -250,6 +269,16 @@ const RawTimingEntrySchema = z.object({
   description: z.string().optional(),
 });
 
+// Unicode operator entries are keyed by the symbol itself. Triggers are the
+// names typed after a backslash; the same symbol may have several (e.g. `\xor`
+// and `\oplus`).
+const RawUnicodeOperatorEntrySchema = z.object({
+  triggers: z.array(z.string().regex(/^[A-Za-z]+$/)).min(1),
+  hint: z.string(),
+  ascii: z.string().optional(),
+  description: z.string().optional(),
+});
+
 const RawCompletionInfoSchema = z.object({
   kind: z.record(
     z.string(),
@@ -265,6 +294,9 @@ const RawCompletionInfoSchema = z.object({
       lifetime: z.record(z.string(), RawTimingEntrySchema),
       sync: z.record(z.string(), RawTimingEntrySchema),
     })
+    .optional(),
+  unicodeOperators: z
+    .record(z.string(), z.union([z.string(), RawUnicodeOperatorEntrySchema]))
     .optional(),
 });
 
@@ -404,6 +436,10 @@ export class CompletionInfo {
   private readonly keywordMap: ReadonlyMap<string, KeywordInfoEntry>;
   private readonly lifetimeTimingMap: ReadonlyMap<string, TimingInfoEntry>;
   private readonly syncTimingMap: ReadonlyMap<string, TimingInfoEntry>;
+  private readonly unicodeOperatorMap: ReadonlyMap<
+    string,
+    UnicodeOperatorInfoEntry
+  >;
 
   /**
    * @param raw     Validated completion-info JSON.
@@ -499,6 +535,23 @@ export class CompletionInfo {
     }
     this.lifetimeTimingMap = new Map(lifetimeEntries);
     this.syncTimingMap = new Map(syncEntries);
+
+    // unicode operator map - strip comment entries
+    const unicodeEntries: [string, UnicodeOperatorInfoEntry][] = [];
+    for (const [symbol, v] of Object.entries(raw.unicodeOperators ?? {})) {
+      if (typeof v === 'string') continue;
+      unicodeEntries.push([
+        symbol,
+        {
+          symbol,
+          triggers: v.triggers,
+          hint: v.hint,
+          ascii: v.ascii ?? null,
+          description: v.description ?? null,
+        },
+      ]);
+    }
+    this.unicodeOperatorMap = new Map(unicodeEntries);
   }
 
   /**
@@ -573,6 +626,16 @@ export class CompletionInfo {
    */
   getSyncTimingEntry(key: string): TimingInfoEntry | null {
     return this.syncTimingMap.get(key) ?? null;
+  }
+
+  /** Unicode operator entry for a symbol (e.g. `"∑"`). Returns `null` if absent. */
+  getUnicodeOperator(symbol: string): UnicodeOperatorInfoEntry | null {
+    return this.unicodeOperatorMap.get(symbol) ?? null;
+  }
+
+  /** All Unicode operator entries. */
+  get knownUnicodeOperators(): UnicodeOperatorInfoEntry[] {
+    return Array.from(this.unicodeOperatorMap.values());
   }
 
   /** All AST node kind strings present in the kind table. */
