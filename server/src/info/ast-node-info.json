@@ -593,6 +593,87 @@
       "name": "dependent sync",
       "description": "**Dependent synchronisation** (`@#msg+N`): the message is available relative to another named message by an offset of `N` cycles (if omitted, defaults to no offset).",
       "examples": "```anvil\n@#req\n@#req+1\n```"
+    },
+
+    "_comment_pact": "Pact node kinds.",
+
+    "interface_def": {
+      "name": "interface",
+      "description": "An interface definition: a named session type over a list of endpoints, describing the order and timing of their messages.\n\nA process typed by interfaces (`proc p(iface)`) gets their endpoints, and each of its threads is checked against the interface at the same position. Pools instantiate interfaces to check that processes are compatible.",
+      "examples": "```anvil\ninterface left_if (ep : left ch) = ep.req ; ep.ack ; #1\n```"
+    },
+
+    "interface_ref": {
+      "name": "interface reference",
+      "description": "An interface in a process header. The process gets the interface's endpoints, and the thread at the same position is checked against its session type."
+    },
+
+    "pool_def": {
+      "name": "pool",
+      "description": "A pool definition: channels, then the interface instances that use their endpoints. The compiler checks that the session types of the members are compatible.",
+      "examples": "```anvil\npool my_pool {\n    a -- b : ch;\n    m1 : i_left(a),\n    m2 : i_right(b)\n}\n```"
+    },
+
+    "pool_member": {
+      "name": "pool member",
+      "description": "A member of a pool: an interface instantiated with pool endpoints (`m : iface(a, b)`), or an inline session type (`m : <session type>`)."
+    },
+
+    "pool_inst": {
+      "name": "pool instance",
+      "description": "A pool instantiated in a process body. Processes are spawned against its members with `spawn Proc[pool.member]`.",
+      "examples": "```anvil\npool p : my_pool;\nspawn worker[p.m1];\n```"
+    },
+
+    "session_type": {
+      "name": "session type",
+      "description": "A session type: the order and timing of messages on a set of endpoints.\n\nOperators, from tightest to loosest binding: `F s` (future), `+` (choice), `||` (parallel), `;` (sequence). Other forms: `#n` (delay), `ep.m` / `#ep.m` (blocking / non-blocking message), `&( ... )` (offer), `^( ... )` (exclusive offer), `rec X . s` (recursion), `forall (i : [a..b]) op { s }` (quantifier), `()` (skip)."
+    },
+
+    "session_message": {
+      "name": "session message",
+      "description": "A message action in a session type. `ep.m` is blocking: the session waits for the message. `#ep.m` is non-blocking."
+    },
+
+    "session_var": {
+      "name": "session variable",
+      "description": "A use of a session variable bound by `rec X . s` or `let X = s in t`."
+    },
+
+    "session_binder": {
+      "name": "session variable binding",
+      "description": "Binds a session variable: `rec X . s` defines a recursive session type, and `let X = s in t` names `s` within `t`."
+    },
+
+    "expr/offer": {
+      "name": "offer",
+      "description": "An offer: waits for the messages of its arms, and runs the body of each arm taken. Several arms may be taken together. With instantaneous arms only (`isend`/`irecv`), an `else` arm runs when no other arm is taken.",
+      "examples": "```anvil\noffer {\n    x = recv ep.req => cycle 1,\n    y = recv ep.ack => cycle 2\n}\n```"
+    },
+
+    "expr/xoffer": {
+      "name": "exclusive offer",
+      "description": "An exclusive offer: takes exactly one of its arms. An optional selector chooses which arm wins when several are ready (`xoffer sel { ... }`, `xoffer tree sel { ... }`)."
+    },
+
+    "expr/offer_match": {
+      "name": "offer match",
+      "description": "An offer followed by `match`: continues with the case for exactly the set of arms taken (`ep.m => e`, `{ep.a, ep.b} => e`, `_ => e`)."
+    },
+
+    "expr/recursion": {
+      "name": "recursive block",
+      "description": "A named recursive block, `rec X { e }` (or `μ X { e }`). `recurse X` inside it restarts the block."
+    },
+
+    "expr/recursor": {
+      "name": "recurse",
+      "description": "Restarts the enclosing recursive block with the given name, defined by `rec X { ... }`."
+    },
+
+    "record_element": {
+      "name": "record field value",
+      "description": "The value given to a field in a record construction, `Rec::{ field = value }`."
     }
   }
 }

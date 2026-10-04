@@ -15,6 +15,7 @@ import {
   AnvilType,
 } from '../core/ast/schema';
 import { signatureHelpLogger } from '../utils/logger';
+import { processEndpointNodes } from '../core/ast/pact';
 
 export class AnvilSignatureHelpGenerator {
   private constructor() {}
@@ -347,9 +348,9 @@ export class AnvilSignatureHelpGenerator {
   ): SignatureHelp | null {
     const prefix = this.getPrefixAtPosition(position, document);
 
-    // Match: send <endpoint>.<message>(   with an unclosed '('
+    // Match: send <endpoint>.<message>(   with an unclosed '(' (also isend)
     const regex = new RegExp(
-      `${this.SPACER_REGEX_GROUP}send\\s+${this.IDENTIFIER_REGEX_GROUP}\\.${this.IDENTIFIER_REGEX_GROUP}\\(([^)]*)$`,
+      `${this.SPACER_REGEX_GROUP}i?send\\s+${this.IDENTIFIER_REGEX_GROUP}\\.${this.IDENTIFIER_REGEX_GROUP}\\(([^)]*)$`,
       'gs',
     );
 
@@ -381,7 +382,7 @@ export class AnvilSignatureHelpGenerator {
       return null;
     }
 
-    const procArgs = procNode.down('args').children;
+    const procArgs = processEndpointNodes(ast, procNode);
 
     const channels =
       procNode

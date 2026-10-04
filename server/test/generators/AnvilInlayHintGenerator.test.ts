@@ -19,6 +19,7 @@ import {
   compilerBinaryPath,
   projectRoot,
   skipUnlessAstSupported,
+  skipUnlessTimingSupported,
 } from '../testCompiler';
 
 const sampleFile = 'samples/lsp_test.anvil';
@@ -43,6 +44,7 @@ describe('AnvilInlayHintGenerator', function () {
 
     assert.ok(compiled, 'lsp_test.anvil must compile successfully');
     assert.ok(doc.anvilAst, 'AST must be present after compilation');
+    skipUnlessTimingSupported(this, doc);
   });
 
   describe('basic timing hints', function () {

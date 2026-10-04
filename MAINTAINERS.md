@@ -46,17 +46,16 @@ Internal TypeScript names (`AnvilDocument`, `AnvilCompiler`, `AnvilAst`, the `an
 
 The server tests follow the same rule: suites that need an AST call `skipUnlessAstSupported()` from `server/test/testCompiler.ts` and are skipped (reported as pending) until the compiler supports `-ast`. Set `PACT_BIN` to test against a different compiler build.
 
-### Roadmap: AST output in the Pact compiler
+### AST output from the Pact compiler
 
-The semantic features need Pact to emit the same AST JSON as the Anvil `add-annotated-ast-output` branch ([`wxwern/anvil@f1fd09b`](https://github.com/wxwern/anvil/tree/add-annotated-ast-output)), schema `v0.1.0`, as described by `server/src/core/ast/schema.ts`. That branch adds `def_span` and `action_event` to every `ast_node`, spans to definitions, and the serializer modules `astJsonSerializer*.ml`, `astAnnotator.ml` and `errorCollector.ml`. Pact diverged from Anvil before that branch, so it needs porting, plus serialization of the Pact-only constructs:
+Pact's `-ast` flag (with `-json`) emits schema `v0.2.0`: the Anvil AST format (`v0.1.0`, described by `server/src/core/ast/schema.ts`) plus additive Pact fields. The serializer is `lib/astJson.ml` in the Pact repository. It differs from the Anvil implementation (`add-annotated-ast-output`) in how links are computed:
 
-- `compilation_unit.session_defs` (interfaces) and `pools`
-- `channel_class_def.local_sty` (`protocol ::`) and message handshake markers (`<<`, `>>`)
-- `proc_def.interface` (interface-typed procs), `proc_def_body.pool_insts`, `spawn_def.interface_params`
-- expressions: `offer`, `xoffer`, offer-`match`, `isend`/`irecv` (`send_handshake`/`recv_handshake`), `rec X { }`/`recurse X`
-- session types, for hover and session-state hints
+- **Definitions.** `def_span` is computed by a scope-aware name resolver in the serializer, not recorded during graph building. Message operations carry their links on the message specifier node (`send_pack.msg_spec`, `recv_pack.msg_spec`) rather than the expression; use `messageOperationDefinitions()` from `server/src/core/ast/pact.ts` when you need them from the expression.
+- **Session states.** Expressions in session-checked threads carry `session: { before, after }`, the remaining session type in Pact syntax (`null` when complete). The compiler records where each expression starts and completes in the event graph (`lib/sessionTrace.ml`) and reads the residual the session checker assigns to those events.
+- **Pact constructs.** The compilation unit has `interfaces` and `pools`; processes have `interfaces` (`interface_ref` nodes); process bodies have `pool_insts`; spawns have `interface_params`; channel classes have `protocol`; messages have `handshake`. Names in session types appear as `refs` (`session_message`, `session_var`, `session_binder` nodes). See the Pact extensions in `schema.ts` and the helpers in `pact.ts`.
+- **Errors.** The AST is produced whenever parsing succeeds; well-formedness errors and missing imports are reported alongside it.
 
-Once the compiler emits these, extend `schema.ts`, `AnvilAst.ts` and `ast-node-info.json` for the new node kinds. It would also help if the compiler included warnings in its JSON output; today it prints them to stderr.
+Not yet emitted: timing events (`event`, `event_graphs`), which clock-cycle inlay hints and expression lifetimes depend on. Tests that need them call `skipUnlessTimingSupported()` and are reported as pending. Pact's event graphs add `Recurse`, `Select` and `SelectJoin` event sources, which the Anvil event serializer does not handle.
 
 ## High-Level Architecture
 

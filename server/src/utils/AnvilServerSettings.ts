@@ -147,6 +147,37 @@ export function resolveTimingInfo(
   };
 }
 
+/**
+ * Controls where the remaining session type of session-checked threads is shown.
+ *
+ * Accepted forms:
+ *   - `true`   -> asInlayHints: true,  onHover: true
+ *   - `false`  -> asInlayHints: false, onHover: false
+ *   - object   -> missing fields default to `true`
+ */
+export type ShowSessionState =
+  | boolean
+  | {
+      asInlayHints?: boolean;
+      onHover?: boolean;
+    };
+
+export interface ResolvedShowSessionState {
+  asInlayHints: boolean;
+  onHover: boolean;
+}
+
+export function resolveSessionState(
+  raw: ShowSessionState | undefined,
+): ResolvedShowSessionState {
+  if (raw === undefined) return { asInlayHints: true, onHover: true };
+  if (typeof raw === 'boolean') return { asInlayHints: raw, onHover: raw };
+  return {
+    asInlayHints: raw.asInlayHints ?? true,
+    onHover: raw.onHover ?? true,
+  };
+}
+
 export interface AnvilServerSettings {
   maxNumberOfProblems?: number;
   projectRoot?: string;
@@ -159,6 +190,7 @@ export interface AnvilServerSettings {
   snippets?: { fancy?: boolean };
   showTimingInfo?: ShowTimingInfo;
   showSyntaxHelp?: ShowSyntaxHelp;
+  showSessionState?: ShowSessionState;
   debug?: boolean;
 }
 
@@ -172,4 +204,5 @@ export const DEFAULT_ANVIL_SERVER_SETTINGS: AnvilServerSettings = {
     onAutocomplete: true,
   },
   showSyntaxHelp: { onHover: true, onAutocomplete: 'anvilKeywords' },
+  showSessionState: { asInlayHints: true, onHover: true },
 };

@@ -18,6 +18,7 @@ import { AnvilLspUtils } from './utils/AnvilLspUtils';
 import {
   AnvilServerSettings,
   DEFAULT_ANVIL_SERVER_SETTINGS,
+  resolveSessionState,
   resolveShowSyntaxHelp,
   resolveTimingInfo,
 } from './utils/AnvilServerSettings';
@@ -380,6 +381,7 @@ connection.onHover(async (params) => {
               ? 'all'
               : 'knownOnly'
             : 'none',
+          session: resolveSessionState(settings.showSessionState).onHover,
           explanations: showSyntaxHelp.onHover,
           examples: showSyntaxHelp.includeExamples,
           debug: D,

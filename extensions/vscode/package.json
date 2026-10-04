@@ -4,6 +4,7 @@
   "description": "Pact Language Server VS Code Extension",
   "author": "Wern Lim <dev@wern.cc>",
   "license": "MIT",
+  "icon": "images/icon.png",
   "main": "./client/out/extension",
   "categories": [],
   "keywords": [
@@ -120,6 +121,37 @@
                   "type": "boolean",
                   "default": false,
                   "description": "Show clock-cycle timing and lifetime information in autocomplete documentation popups."
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "pact.showSessionState": {
+          "scope": "window",
+          "default": {
+            "asInlayHints": true,
+            "onHover": true
+          },
+          "description": "Controls where the remaining session type of session-checked threads is shown.",
+          "oneOf": [
+            {
+              "type": "boolean",
+              "description": "`true` shows session states as inlay hints and on hover. `false` hides them."
+            },
+            {
+              "type": "object",
+              "description": "Fine-grained control over where session states appear.",
+              "properties": {
+                "asInlayHints": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Show the remaining session type after each statement that advances the session, and at the start of each offer arm."
+                },
+                "onHover": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Show the session type before and after an expression when hovering over it."
                 }
               },
               "additionalProperties": false

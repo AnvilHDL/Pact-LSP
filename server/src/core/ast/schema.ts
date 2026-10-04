@@ -590,6 +590,73 @@ export const AnvilSharedVarDefSchema = AnvilSpannableSchema.extend({
 export type AnvilSharedVarDef = z.infer<typeof AnvilSharedVarDefSchema>;
 
 //
+// PACT EXTENSIONS (schema v0.2.0)
+// Added by the Pact compiler. All are optional where they extend existing nodes,
+// so Anvil ASTs (v0.1.x) remain valid.
+//
+
+/**
+ * Remaining session type before and after an expression in a session-checked
+ * thread, in Pact syntax. `null` means the session is complete.
+ */
+export const AnvilSessionStateSchema = z.looseObject({
+  before: z.string().nullable(),
+  after: z.string().nullable(),
+});
+export type AnvilSessionState = z.infer<typeof AnvilSessionStateSchema>;
+
+/** An interface named in a process header: `proc p(iface, ...)`. */
+export const AnvilInterfaceRefSchema = AnvilSpannableSchema.extend({
+  kind: z.literal('interface_ref'),
+  interface: z.string(),
+});
+export type AnvilInterfaceRef = z.infer<typeof AnvilInterfaceRefSchema>;
+
+/** A pool instantiation in a process body: `pool p : pool_type;`. */
+export const AnvilPoolInstSchema = AnvilSpannableSchema.extend({
+  kind: z.literal('pool_inst'),
+  name: z.string(),
+  pool: z.string(),
+});
+export type AnvilPoolInst = z.infer<typeof AnvilPoolInstSchema>;
+
+/** A name referenced in a session type: a message action, a variable, or a binder. */
+export const AnvilSessionRefSchema = AnvilSpannableSchema.extend({
+  kind: z.enum(['session_message', 'session_var', 'session_binder']),
+});
+export type AnvilSessionRef = z.infer<typeof AnvilSessionRefSchema>;
+
+/** An interface definition: a session type over a list of endpoints. */
+export const AnvilInterfaceSchema = AnvilSpannableSchema.extend({
+  kind: z.literal('interface_def'),
+  name: z.string(),
+  params: z.array(AnvilEndpointSchema),
+  data_params: z.array(AnvilParamSchema),
+  session_type: AnvilSpannableSchema,
+  refs: z.array(AnvilSessionRefSchema),
+});
+export type AnvilInterface = z.infer<typeof AnvilInterfaceSchema>;
+
+/** A pool member: an interface instantiated with pool endpoints, or an inline session type. */
+export const AnvilPoolMemberSchema = AnvilSpannableSchema.extend({
+  kind: z.literal('pool_member'),
+  name: z.string(),
+  interface: z.string().nullable(),
+  endpoints: z.array(z.string()),
+  refs: z.array(AnvilSessionRefSchema),
+});
+export type AnvilPoolMember = z.infer<typeof AnvilPoolMemberSchema>;
+
+/** A pool definition: channels and the interfaces that use them. */
+export const AnvilPoolSchema = AnvilSpannableSchema.extend({
+  kind: z.literal('pool_def'),
+  name: z.string(),
+  channels: z.array(AnvilChannelSchema),
+  members: z.array(AnvilPoolMemberSchema),
+});
+export type AnvilPool = z.infer<typeof AnvilPoolSchema>;
+
+//
 // PROC_DEF_BODY
 // { kind: "proc_def_body", type: "native"|"extern", ... }
 //
@@ -602,6 +669,7 @@ export const AnvilProcDefBodyNativeSchema = z.looseObject({
   regs: z.array(AnvilRegisterSchema),
   shared_vars: z.array(AnvilSharedVarDefSchema),
   threads: z.array(AnvilThreadSchema),
+  pool_insts: z.array(AnvilPoolInstSchema).optional(),
 });
 
 export type AnvilProcDefBodyNative = z.infer<
@@ -646,6 +714,7 @@ export const AnvilProcSchema = z.looseObject({
   body: AnvilProcBodySchema,
   params: z.array(AnvilParamSchema),
   span: AnvilSpanSchema,
+  interfaces: z.array(AnvilInterfaceRefSchema).optional(),
 });
 export type AnvilProc = z.infer<typeof AnvilProcSchema>;
 
@@ -711,5 +780,7 @@ export const AnvilCompUnitSchema = z.looseObject({
   imports: z.array(AnvilImportDirectiveSchema),
   _extern_procs: z.array(AnvilProcSchema),
   event_graphs: z.array(AnvilEventGraphSchema).optional().nullable(),
+  interfaces: z.array(AnvilInterfaceSchema).optional(),
+  pools: z.array(AnvilPoolSchema).optional(),
 });
 export type AnvilCompUnit = z.infer<typeof AnvilCompUnitSchema>;

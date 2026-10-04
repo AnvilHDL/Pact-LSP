@@ -18,6 +18,7 @@ import {
   compilerBinaryPath,
   projectRoot,
   skipUnlessAstSupported,
+  skipUnlessTimingSupported,
 } from '../testCompiler';
 
 const sampleFile = 'samples/lsp_test.anvil';
@@ -318,10 +319,12 @@ describe('AnvilDescriptionGenerator', function () {
       let node: AnvilAstNode | null;
 
       before(function () {
-        node = nodeAt(ENDP_REF_POS, 'expr');
+        // the node under the cursor: the recv expression, or its message
+        // specifier where the compiler gives it its own node
+        node = ast.closestNode(fullPath, ENDP_REF_POS.line, ENDP_REF_POS.col);
       });
 
-      it('finds the recv expr node', function () {
+      it('finds the node under the cursor', function () {
         assert.ok(
           node,
           `should find an expr node at line ${ENDP_REF_POS.line}`,
@@ -349,6 +352,10 @@ describe('AnvilDescriptionGenerator', function () {
   });
 
   describe('lifetime information', function () {
+    before(function () {
+      skipUnlessTimingSupported(this, doc);
+    });
+
     describe('hovering over left message definition', function () {
       const LEFT_MSG_DEF_POS = { line: 47, col: 10 }; // "req" message_def inside Calc_ch
       let node: AnvilAstNode | null;
@@ -859,6 +866,10 @@ describe('AnvilDescriptionGenerator', function () {
     });
 
     describe('code + lifetime combination', function () {
+      before(function () {
+        skipUnlessTimingSupported(this, doc);
+      });
+
       const RECV_POS = { line: 92, col: 22 }; // recv expression
       let node: AnvilAstNode | null;
 
@@ -953,6 +964,10 @@ describe('AnvilDescriptionGenerator', function () {
     });
 
     describe('definitions + lifetime combination', function () {
+      before(function () {
+        skipUnlessTimingSupported(this, doc);
+      });
+
       const RECV_POS = { line: 92, col: 22 }; // recv expression
       let node: AnvilAstNode | null;
 
@@ -988,6 +1003,10 @@ describe('AnvilDescriptionGenerator', function () {
     });
 
     describe('all segments combination', function () {
+      before(function () {
+        skipUnlessTimingSupported(this, doc);
+      });
+
       const FUNC_CALL_POS = { line: 94, col: 20 }; // "add8" function call
       let node: AnvilAstNode | null;
 

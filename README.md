@@ -1,177 +1,107 @@
-# pact-lsp
+<p align="center">
+  <a href="https://anvil.kisp-lab.org/" aria-label="AnvilHDL website">
+    <img alt="AnvilHDL" src="assets/anvilhdl-logo.png" height="84">
+  </a>
+</p>
 
-[Language Server Protocol (LSP)](https://microsoft.github.io/language-server-protocol/) implementation for [Pact](https://github.com/arj4web/Pact), the session-typed extension of the [Anvil](https://github.com/kisp-nus/anvil) hardware description language, with prepared extensions for supported editors.
+# Pact Language Server
 
-This is a fork of [anvil-lsp](https://github.com/AnvilHDL/anvil-lsp). It understands Pact's additions (interfaces, pools, protocols, offers, instantaneous messages, recursion and the Unicode session-type operators) and drives the `pact` compiler instead of `anvil`.
+A [Language Server Protocol](https://microsoft.github.io/language-server-protocol/) implementation for [Pact](https://github.com/arj4web/Pact), the session-typed extension of [AnvilHDL](https://github.com/AnvilHDL/anvil), with extensions for VS Code and Vim/Neovim (coc.nvim). It is derived from the [Anvil Language Server](https://github.com/AnvilHDL/anvil-lsp).
 
-## Requires
+> [!NOTE]
+> The language server is experimental. Features that depend on the compiler's AST output (`-ast`) are enabled automatically when the compiler provides it.
 
-- The Pact compiler, [`f0115c7` or later](https://github.com/arj4web/Pact/tree/overhead-inspection). The pinned version is included as a submodule in this repository. Earlier versions write debug `.dot` files into your project on every compile.
-- [Node.js](https://nodejs.org/en) version 22 or later.
+## Features
 
-To install the language server, view the [installation instructions](#language-server-installation) for your editor of choice. To build the pinned compiler, view the [Pact installation instructions](#pact-installation).
+| Feature | Support |
+| --- | --- |
+| Diagnostics | Compile errors, including session-type errors |
+| Completion | Keywords with documentation; Unicode session-type operators; endpoints, messages and symbols in context¹ |
+| Hover | Syntax help; definitions, types and message timing contracts¹ |
+| Navigation | Go to definition and find references across interfaces, pools, protocols, processes, channels, registers and types¹ |
+| Session states | The remaining session type of each thread, as inlay hints and on hover¹ |
+| Signature help | Function calls, message sends, record initialisers and spawns¹ |
+| Highlighting | All Pact keywords and operators (VS Code and Vim) |
+| Timing | Clock-cycle inlay hints and expression lifetimes are not yet available for Pact |
 
-If you want to develop or maintain this repository, see the [maintainer guide](MAINTAINERS.md).
+¹ Requires a Pact compiler with AST output (`-ast`). Without it, diagnostics, keyword completion, syntax help and highlighting remain available.
 
----
-
-## Feature Support
-
-The language server works in two tiers, depending on what the compiler provides:
-
-- **With any supported Pact compiler** (available now):
-    - [x] Inline diagnostics for compile errors (syntax, type, borrow, lifetime and session-type errors)
-    - [x] Syntax highlighting for all Pact keywords and operators
-    - [x] Keyword completion with documentation, including every Pact construct
-    - [x] Unicode operator input: type `\sum`, `\prod`, `\xor`, `\and`, `\forall`, `\in`, `\mu` or `\not` to insert `∑ ∏ ⨁ ⋀ ∀ ∈ μ  ̸`
-    - [x] Hover help for keywords and Unicode operators, including their ASCII equivalents
-- **With a Pact compiler that supports `-ast`** (not yet available; turns on automatically once the compiler has it):
-    - [ ] Hover information for definitions, types, lifetimes and timings
-    - [ ] Go to definition / type definition, find all references
-    - [ ] Context-aware completion and signature help
-    - [ ] Inlay hints for clock cycles and lifetimes
-    - [ ] Navigation for interfaces, pools and session definitions; session-state hints
-
-Pact currently prints warnings to stderr rather than including them in its JSON output, so warnings are not shown in the editor yet.
-
-For details, see the [LSP feature support documentation](LSP.md).
+See [LSP.md](LSP.md) for the detailed feature matrix.
 
 ### Unicode operators
 
-Each operator has an ASCII equivalent, so the Unicode forms are optional:
+Type a backslash followed by the operator name to insert its symbol. Each symbol has an ASCII equivalent.
 
-| Type | Inserts | ASCII equivalent | Meaning |
+| Input | Symbol | ASCII | Meaning |
 | --- | --- | --- | --- |
-| `\sum` | `∑` | `+` | n-ary choice |
-| `\prod` | `∏` | `\|\|` | n-ary parallel composition |
-| `\and`, `\wedge` | `⋀` | `&` | offer |
-| `\xor`, `\oplus` | `⨁` | `^` | exclusive offer |
-| `\forall` | `∀` | `forall` | quantifier |
-| `\in` | `∈` | `:` | quantifier range binder |
-| `\mu`, `\rec` | `μ` | `rec` | recursion |
-| `\not` | ` ̸` | `not` | exclusion from a quantifier range |
+| `\sum` | `∑` | `+` | Choice |
+| `\prod` | `∏` | `\|\|` | Parallel composition |
+| `\and`, `\wedge` | `⋀` | `&` | Offer |
+| `\xor`, `\oplus` | `⨁` | `^` | Exclusive offer |
+| `\forall` | `∀` | `forall` | Quantifier |
+| `\in` | `∈` | `:` | Quantifier range |
+| `\mu`, `\rec` | `μ` | `rec` | Recursion |
+| `\not` | ` ̸` | `not` | Range exclusion |
 
-The exclusion symbol is lexed as exactly one space followed by U+0338, so completing `\not` also replaces any whitespace before it.
+The exclusion symbol is a single space followed by U+0338; completing `\not` replaces any whitespace before it.
 
----
+## Requirements
 
-## Language Server Installation
+- [Node.js](https://nodejs.org/) 22 or later.
+- The Pact compiler, commit [`f0115c7`](https://github.com/arj4web/Pact/tree/overhead-inspection) or later. AST output (`-ast`) is available on the `pact-ast` branch. The `pact` submodule pins a version without AST output.
 
-Extensions are experimental. They integrate syntax highlighting and LSP support for `.anvil` files.
+## Installation
 
-The Pact extensions use the same `anvil` language ID and `.anvil` file extension as the Anvil extensions, so **install either the Anvil or the Pact extension, not both active at once**. If you work on both languages, disable one of them per workspace (in VS Code: right-click the extension → **Disable (Workspace)**).
+### Compiler
 
-Available extensions for supported editors are included in the `extensions` folder.
+```bash
+git clone --recurse-submodules <repository-url> pact-lsp
+cd pact-lsp/pact
+eval $(opam env) && dune build --release && dune install
+```
 
-- [VSCode](#vscode)
-- [Vim/Neovim (`coc.nvim`)](#vimneovim-cocnvim)
+To use another Pact build, set `pact.executablePath` to its binary.
 
-### VSCode
+### VS Code
 
-1. Clone this repository, and build the extension:
-    ```bash
-    git clone <repository-url> pact-lsp
-    cd pact-lsp/extensions/vscode
-    npm install
-    npm run build
-    ```
+```bash
+cd pact-lsp/extensions/vscode
+npm install && npm run build
+```
 
-2. Open the Command Palette with `Ctrl/Cmd + Shift + P`.
-
-3. Select **"Developer: Install Extension from Location..."**.
-
-4. Navigate to this repository, then into `extensions`, and then `vscode`.
-
-5. Select **"Open"** to install the extension.
+Then run **Developer: Install Extension from Location...** from the Command Palette and select `extensions/vscode`.
 
 ### Vim/Neovim (coc.nvim)
 
-This requires `coc.nvim` for out-of-the-box LSP support.
+Build `extensions/vim` with `npm install && npm run build` and add it to the runtime path:
 
-1. Clone this repository, and build the extension:
-    ```bash
-    git clone <repository-url> pact-lsp
-    cd pact-lsp/extensions/vim
-    npm install
-    npm run build
-    ```
+```vim
+set rtp^=/path/to/pact-lsp/extensions/vim
+```
 
-2. Add the following to your `.vimrc` or `init.vim`:
-    ```vim
-    set rtp^=/path/to/pact-lsp/extensions/vim
-    ```
+The Pact and Anvil extensions both handle `.anvil` files. Enable only one of them per workspace.
 
-### Settings
-
-All settings live under the `pact` namespace (`coc-settings.json` for coc.nvim):
+## Configuration
 
 | Setting | Default | Description |
 | --- | --- | --- |
-| `pact.executablePath` | `pact` on your `PATH` | Path to the Pact compiler binary. |
-| `pact.compilerArgs` | `[]` | Extra compiler flags, e.g. `["-disable-compat-checks"]` or `["-strict-dtc"]`. |
-| `pact.compileTimeout` | `15000` | Milliseconds before a compiler run is stopped and reported as timed out. `0` disables the limit. |
-| `pact.projectRoot` | workspace root | Directory the compiler runs in. |
+| `pact.executablePath` | `pact` on `PATH` | Path to the compiler. |
+| `pact.compilerArgs` | `[]` | Additional compiler flags, e.g. `["-disable-compat-checks"]`. |
+| `pact.compileTimeout` | `15000` | Milliseconds before a compiler run is stopped; `0` disables the limit. |
+| `pact.projectRoot` | Workspace root | Directory in which the compiler runs. |
 | `pact.maxNumberOfProblems` | `100` | Maximum number of diagnostics per file. |
-| `pact.showSyntaxHelp` | on | Explanations of Pact syntax in hovers and completion popups. |
-| `pact.showTimingInfo` | on | Clock-cycle and lifetime information (requires `-ast` support). |
+| `pact.showTimingInfo` | Condensed inlay hints and hover | Where clock-cycle and lifetime information is shown (not yet emitted by Pact). |
+| `pact.showSyntaxHelp` | Hover and keyword completions | Where explanations of Pact syntax are shown. |
+| `pact.showSessionState` | Inlay hints and hover | Where the remaining session type is shown. |
+| `pact.asciiOnlyIcons` | `false` | Use ASCII characters instead of Unicode symbols. |
 
----
-
-## Pact Installation
-
-The Pact compiler is required for the language server to work. This repository includes Pact as a submodule, pinned to a version known to work with the language server.
-
-1. Clone the repository with submodules:
-    ```bash
-    git clone --recurse-submodules <repository-url> pact-lsp
-    ```
-
-   If you have already cloned it without submodules, you can retrieve them like so:
-    ```bash
-    git submodule update --init --recursive
-    ```
-
-2. Build and install the pinned Pact version:
-    ```bash
-    cd pact-lsp/pact
-    eval $(opam env) && dune build --release && dune install
-    ```
-
-To use your own Pact checkout instead, point `pact.executablePath` at its build, e.g. `/path/to/Pact/_build/default/bin/main.exe`.
-
----
-
-## Update Scripts
-
-You can update this repo and forcibly resync submodules as such:
+## Development
 
 ```bash
-# retrieves updated changes for server and submodules
-./update.sh
-
-# like above, but as separate invocations:
-./update.sh server
-./update.sh submodules
-```
-
-## Development Workflows
-
-For a full repository architecture and maintainer guide, see [MAINTAINERS.md](MAINTAINERS.md).
-
-On *nix systems, run the dev scripts in the root of the repository to format/build/test all components
-(language server, Pact compiler, all editor extensions):
-```bash
-./format.sh
-./build.sh
+./build.sh    # compiler, server and extensions
 ./test.sh
+./format.sh
+./update.sh   # pull this repository and resynchronise submodules
 ```
 
-Or specify component(s) as argument(s) to build only said component, e.g.,
-```bash
-./build.sh pact vscode
-```
-
-To run the server tests against a different compiler build, set `PACT_BIN`:
-```bash
-cd server && PACT_BIN=/path/to/Pact/_build/default/bin/main.exe npm test
-```
+Each script accepts component names (`pact`, `server`, `vscode`, `vim`) to limit it to those components. To test against another compiler build, set `PACT_BIN`, e.g. `cd server && PACT_BIN=/path/to/pact npm test`. See [MAINTAINERS.md](MAINTAINERS.md) for the architecture and maintenance guide.

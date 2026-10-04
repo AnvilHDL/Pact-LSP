@@ -55,7 +55,12 @@
     "data_type/variant": {
       "hint": "enum",
       "lspKind": "Enum"
-    }
+    },
+    "interface_def": { "hint": "interface", "lspKind": "Interface" },
+    "pool_def": { "hint": "pool", "lspKind": "Module" },
+    "pool_member": { "hint": "pool member", "lspKind": "Field" },
+    "pool_inst": { "hint": "pool instance", "lspKind": "Variable" },
+    "session_binder": { "hint": "session variable", "lspKind": "TypeParameter" }
   },
 
   "builtInKeywordCompletions": {

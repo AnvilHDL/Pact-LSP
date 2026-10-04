@@ -15,6 +15,7 @@ import {
   AnvilTypeSchema,
 } from '../core/ast/schema';
 import { completionInfo } from '../info/parsed';
+import { processEndpointNodes } from '../core/ast/pact';
 import { completionLogger } from '../utils/logger';
 
 export class AnvilCompletionDetail {
@@ -512,8 +513,9 @@ export class AnvilCompletionGenerator {
     const prefix = this.getPrefixAtPosition(position, document);
 
     // Heuristic matches when cursor is at: "send/recv endpoint_name.message_name(" excluding the trailing "("
+    // (also isend/irecv)
     const regex = new RegExp(
-      `${this.SPACER_REGEX_GROUP}(send|recv)\\s+(${this.IDENTIFIER_REGEX_GROUP}(\\.(${this.IDENTIFIER_REGEX_GROUP})?)?)?$`,
+      `${this.SPACER_REGEX_GROUP}(i?send|i?recv)\\s+(${this.IDENTIFIER_REGEX_GROUP}(\\.(${this.IDENTIFIER_REGEX_GROUP})?)?)?$`,
       'g',
     );
     completionLogger.info(
@@ -528,7 +530,7 @@ export class AnvilCompletionGenerator {
 
     completionLogger.info('Send/recv completion heuristic matched!');
     completionLogger.info(match);
-    const isSend = match[2] === 'send';
+    const isSend = match[2].endsWith('send');
 
     const endpointPartialNamePrefix = match[4] || '';
     const hasDot = !!match[5];
@@ -544,15 +546,17 @@ export class AnvilCompletionGenerator {
     // The endpoint is either a local endpoint def or a local channel def
 
     // Attempt: endpoint_def search
-    // Locate endpoints in the closest proc scope, and filter by prefix.
-    const endpoints = ast
-      .closestNode(
-        document.filepath,
-        position.line,
-        position.character,
-        AnvilProcSchema,
-      )
-      ?.down('args').children;
+    // Locate endpoints in the closest proc scope (its arguments and the
+    // parameters of its interfaces), and filter by prefix.
+    const procNode = ast.closestNode(
+      document.filepath,
+      position.line,
+      position.character,
+      AnvilProcSchema,
+    );
+    const endpoints = procNode
+      ? processEndpointNodes(ast, procNode)
+      : undefined;
 
     const matchingEndpoints =
       endpoints?.filter((e) => e.name?.startsWith(endpointPartialNamePrefix)) ||
@@ -605,7 +609,7 @@ export class AnvilCompletionGenerator {
 
       if (
         endpointCandidate.kind === 'channel_def' &&
-        endpointCandidate.down('endpoint_right')?.resolve() ===
+        endpointCandidate.unsafeTraverse('endpoint_right').resolve() ===
           selectedEndpointName
       ) {
         isOut = !isOut;

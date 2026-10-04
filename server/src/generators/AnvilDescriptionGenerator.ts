@@ -8,6 +8,11 @@ import {
   AnvilMessageSyncMode,
 } from '../core/ast/schema';
 import { astNodeInfo, completionInfo } from '../info/parsed';
+import {
+  enclosingSessionState,
+  formatSessionType,
+  messageOperationDefinitions,
+} from '../core/ast/pact';
 import { diagnosticsLogger } from '../utils/logger';
 import {
   formatCycleTime,
@@ -574,6 +579,8 @@ export class AnvilDescriptionGenerator {
       lifetime?: boolean;
       /** Controls visibility of timing variable expansion lines. */
       timingVariableExpansions?: 'all' | 'knownOnly' | 'none';
+      /** Remaining session type before and after the enclosing expression. */
+      session?: boolean;
       /** Explanations of the node */
       explanations?: boolean;
       /** Code examples from ast-node-info.json. Only shown when explanations is also true. */
@@ -586,6 +593,7 @@ export class AnvilDescriptionGenerator {
     const documentationSegment = '';
     let definitionsSegment = '';
     let lifetimeSegment = '';
+    let sessionSegment = '';
     let explanationSegment = '';
     let debugPathSegment = '';
 
@@ -647,7 +655,7 @@ export class AnvilDescriptionGenerator {
 
         if (isSend || isRecv) {
           const context: 'send' | 'recv' = isSend ? 'send' : 'recv';
-          const defs = node.definitions;
+          const defs = messageOperationDefinitions(node);
           for (const def of defs) {
             const defNode = anvilDocument.anvilAst?.node(def);
             if (defNode?.satisfiesKind('message_def')) {
@@ -688,6 +696,26 @@ export class AnvilDescriptionGenerator {
         );
         const sep = hasAbove ? '\n\n---\n\n' : '';
         lifetimeSegment = sep + sectionParts.join('\n') + '\n';
+      }
+    }
+
+    // populate session segment
+    if (segments?.session) {
+      const found = enclosingSessionState(node);
+      if (found) {
+        const hasAbove = !!(
+          codeSegment ||
+          definitionsSegment ||
+          lifetimeSegment
+        );
+        const sep = hasAbove ? '\n\n---\n\n' : '';
+        sessionSegment =
+          sep +
+          '**Session:** `' +
+          formatSessionType(found.state.before) +
+          '` ⟶ `' +
+          formatSessionType(found.state.after) +
+          '`\n';
       }
     }
 
@@ -732,6 +760,7 @@ export class AnvilDescriptionGenerator {
       documentationSegment +
       definitionsSegment +
       lifetimeSegment +
+      sessionSegment +
       explanationSegment +
       debugPathSegment
     );

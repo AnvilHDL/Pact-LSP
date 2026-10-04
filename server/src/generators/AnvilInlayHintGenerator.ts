@@ -1,12 +1,15 @@
 import { InlayHint, InlayHintKind } from 'vscode-languageserver';
 import {
   AnvilServerSettings,
+  resolveSessionState,
   resolveTimingInfo,
 } from '../utils/AnvilServerSettings';
 import { AnvilLspUtils } from '../utils/AnvilLspUtils';
 import { inlayHintLogger } from '../utils/logger';
 import { AnvilDocument } from '../core/AnvilDocument';
 import { AnvilEventInfo } from '../core/ast/AnvilAst';
+import { AnvilSessionStateSchema } from '../core/ast/schema';
+import { formatSessionType } from '../core/ast/pact';
 import {
   formatCycleTime,
   hasSymbolicParts,
@@ -40,7 +43,88 @@ export class AnvilInlayHintGenerator {
       );
     }
 
+    if (resolveSessionState(settings.showSessionState).asInlayHints) {
+      hints.push(
+        ...this.computeSessionInlayHints(anvilDocument, {
+          ascii: settings.asciiOnlyIcons ?? false,
+        }),
+      );
+    }
+
     return hints;
+  }
+
+  //
+  // SESSION STATE HINTS
+  //
+
+  /** Expression types after which the remaining session type is shown. */
+  private static readonly SESSION_HINT_EXPR_TYPES = new Set([
+    'send',
+    'recv',
+    'try_send',
+    'try_recv',
+    'cycle',
+    'sync',
+    'offer',
+    'xoffer',
+    'offer_match',
+    'if_expr',
+  ]);
+
+  /**
+   * Computes hints showing the remaining session type in session-checked
+   * threads: after each statement that advances the session, and at the start
+   * of each offer arm body (the session once that arm is taken).
+   */
+  private static computeSessionInlayHints(
+    anvilDocument: AnvilDocument,
+    options: { ascii: boolean },
+  ): InlayHint[] {
+    const ast = anvilDocument.anvilAst;
+    if (!ast) return [];
+
+    const arrow = options.ascii ? '->' : '⟶';
+    const hints = new Map<string, InlayHint>();
+
+    for (const loc of ast.getAllLocatableNodes(anvilDocument.filepath)) {
+      const node = ast.node(loc);
+      const state = node
+        ?.unsafeTraverse('session')
+        .resolveAs(AnvilSessionStateSchema);
+      if (!node || !state) continue;
+
+      const isOfferArmBody =
+        node.nodepath.at(-1) === 'body' && node.up()?.kind === 'offer_arm';
+
+      let hint: InlayHint;
+      if (isOfferArmBody) {
+        const position = anvilDocument.getLspPosOfAnvilPos(loc.span.start);
+        if (!position) continue;
+        hint = {
+          position,
+          label: `${arrow} ${formatSessionType(state.before)}`,
+          kind: InlayHintKind.Type,
+          paddingRight: true,
+        };
+      } else if (this.SESSION_HINT_EXPR_TYPES.has(node.type ?? '')) {
+        const position = anvilDocument.getLspPosOfAnvilPos(loc.span.end);
+        if (!position) continue;
+        hint = {
+          position,
+          label: `${arrow} ${formatSessionType(state.after)}`,
+          kind: InlayHintKind.Type,
+          paddingLeft: true,
+        };
+      } else {
+        continue;
+      }
+
+      const key = `${hint.position.line}:${hint.position.character}`;
+      if (!hints.has(key)) hints.set(key, hint);
+    }
+
+    return [...hints.values()];
   }
 
   //

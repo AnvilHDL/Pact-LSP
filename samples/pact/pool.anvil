@@ -1,0 +1,36 @@
+chan ch {
+    left req : (logic@#1),
+    right ack : (logic@#1)
+    protocol :: (ep.req ; ep.ack)
+}
+interface i_left (ep : left ch) = ep.req ; ep.ack ; #1
+interface i_right (ep : right ch) = ep.req ; ep.ack ; #1
+
+pool my_pool {
+    a -- b : ch;
+    m1 : i_left(a),
+    m2 : i_right(b)
+}
+
+proc worker(i_left) {
+    loop {
+        let x = recv ep.req >>
+        send ep.ack(1'd1) >>
+        cycle 1
+    }
+}
+
+proc driver(i_right) {
+    loop {
+        send ep.req(1'd1) >>
+        let y = recv ep.ack >>
+        cycle 1
+    }
+}
+
+proc top() {
+    pool p : my_pool;
+    spawn worker[p.m1];
+    spawn driver[p.m2];
+    loop { cycle 100 >> dfinish }
+}

@@ -1,23 +1,9 @@
-# coc-anvil
+# Pact Language Server for coc.nvim
 
-Anvil Language Server coc.nvim extension
+A [coc.nvim](https://github.com/neoclide/coc.nvim) extension that provides Pact support in Vim and Neovim: filetype detection for `.anvil` files, syntax highlighting, and the Pact language server.
 
-## Install
-
-`:CocInstall coc-anvil`
-
-## Keymaps
-
-`nmap <silent> <C-l> <Plug>(coc-coc-anvil-keymap)`
-
-## Lists
-
-`:CocList demo_list`
+See the [repository README](../../README.md) for installation and configuration.
 
 ## License
 
 MIT
-
----
-
-> This extension is built with [create-coc-extension](https://github.com/fannheyward/create-coc-extension)
