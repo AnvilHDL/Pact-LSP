@@ -147,6 +147,7 @@ export class AnvilDocument {
         {
           extraArgs: settings.compilerArgs,
           timeoutMs: settings.compileTimeout,
+          compatibilityChecks: settings.compatibilityChecks,
         },
       );
 
@@ -295,13 +296,20 @@ export class AnvilDocument {
     if (identifier) return identifier;
 
     const { line } = position;
+    const charAt = (character: number) =>
+      character < 0
+        ? ''
+        : this.textDocument.getText({
+            start: { line, character },
+            end: { line, character: character + 1 },
+          });
     for (const character of [position.character, position.character - 1]) {
-      if (character < 0) continue;
-      const ch = this.textDocument.getText({
-        start: { line, character },
-        end: { line, character: character + 1 },
-      });
-      if (ch.trim()) return ch;
+      const ch = charAt(character);
+      if (!ch.trim()) continue;
+      // Fair operators carry a ᶠ suffix: `⨁ᶠ`, `⊕ᶠ`, `+ᶠ`.
+      if (ch === 'ᶠ' && charAt(character - 1).trim()) return charAt(character - 1) + ch;
+      if (charAt(character + 1) === 'ᶠ') return ch + 'ᶠ';
+      return ch;
     }
     return null;
   }

@@ -139,6 +139,8 @@ export interface AnvilCompilerCapabilities {
   astOutput: boolean;
   /** Supports `-just-check` (type checking only, skipping code generation). */
   justCheck: boolean;
+  /** Supports `-disable-compat-checks` (skips pool compatibility checks). */
+  disableCompatChecks: boolean;
 }
 
 export interface AnvilCompilerOptions {
@@ -146,6 +148,8 @@ export interface AnvilCompilerOptions {
   extraArgs?: string[];
   /** Kill the compiler and report an error after this many milliseconds (0 disables). */
   timeoutMs?: number;
+  /** Run pool compatibility checks (default off). */
+  compatibilityChecks?: boolean;
 }
 
 export const DEFAULT_COMPILE_TIMEOUT_MS = 15000;
@@ -170,6 +174,7 @@ export class AnvilCompiler {
   private readonly anvilBinaryPath: string;
   private readonly extraArgs: string[];
   private readonly timeoutMs: number;
+  private readonly compatibilityChecks: boolean;
 
   private static readonly capabilitiesCache = new Map<
     string,
@@ -185,6 +190,7 @@ export class AnvilCompiler {
     this.anvilBinaryPath = anvilBinaryPath || 'pact';
     this.extraArgs = options?.extraArgs ?? [];
     this.timeoutMs = options?.timeoutMs ?? DEFAULT_COMPILE_TIMEOUT_MS;
+    this.compatibilityChecks = options?.compatibilityChecks ?? false;
   }
 
   /**
@@ -196,6 +202,7 @@ export class AnvilCompiler {
     return {
       astOutput: hasFlag('-ast'),
       justCheck: hasFlag('-just-check'),
+      disableCompatChecks: hasFlag('-disable-compat-checks'),
     };
   }
 
@@ -286,6 +293,11 @@ export class AnvilCompiler {
         ...(capabilities.astOutput ? ['-ast'] : []),
         '-json',
         ...(capabilities.justCheck ? ['-just-check'] : []),
+        ...(!this.compatibilityChecks &&
+        capabilities.disableCompatChecks &&
+        !this.extraArgs.includes('-disable-compat-checks')
+          ? ['-disable-compat-checks']
+          : []),
         ...(hasInMemoryData ? ['-stdin'] : []),
         files[0],
       ];

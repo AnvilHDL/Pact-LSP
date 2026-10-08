@@ -65,14 +65,14 @@ syn match anvilPunctSemi ";"
 syn match anvilPunctDot "\." "contained"
 
 " Control keywords
-syn keyword anvilControl call loop recursive if else try recurse irecv isend recv send dprint dfinish set cycle sync match put ready in probe offer xoffer rec
+syn keyword anvilControl call loop recursive if else try recurse irecv isend recv send dprint dfinish set cycle sync match put ready in probe offer xoffer rec fair
 syn keyword anvilOtherKeywords with let
 syn match anvilAssignment ":=\|="
 syn match anvilWait ">>"
 
 " Session types
 syn keyword anvilSession forall not F
-syn match anvilSessionOperator "[∀∑∏⨁⋀∈μ]\| ̸\|||"
+syn match anvilSessionOperator "[∀∑∏⨁⊕⋀∧∈μ]ᶠ\=\| ̸\|||\|\^\^\|++\|+ᶠ"
 syn match anvilTerminal "\$"
 syn match anvilArrow "=>"
 syn match anvilHandshake "<<"

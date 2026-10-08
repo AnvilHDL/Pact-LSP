@@ -76,7 +76,13 @@
             "type": "string"
           },
           "default": [],
-          "description": "Extra flags passed to the Pact compiler, e.g. [\"-disable-compat-checks\"] or [\"-strict-dtc\"]."
+          "description": "Extra flags passed to the Pact compiler, e.g. [\"-strict-dtc\"]."
+        },
+        "pact.compatibilityChecks": {
+          "scope": "resource",
+          "type": "boolean",
+          "default": false,
+          "description": "Run pool compatibility checks during diagnostics. Off by default because they can take minutes on large pools."
         },
         "pact.compileTimeout": {
           "scope": "resource",

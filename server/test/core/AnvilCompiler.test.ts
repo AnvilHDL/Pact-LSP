@@ -193,12 +193,15 @@ describe('AnvilCompiler', () => {
       assert.deepStrictEqual(AnvilCompiler.parseCapabilities(help), {
         astOutput: false,
         justCheck: true,
+        disableCompatChecks: false,
       });
       assert.deepStrictEqual(
         AnvilCompiler.parseCapabilities(
-          help + '\n  -ast Output the annotated AST',
+          help +
+            '\n  -ast Output the annotated AST' +
+            '\n  -disable-compat-checks Disable compatibility checks',
         ),
-        { astOutput: true, justCheck: true },
+        { astOutput: true, justCheck: true, disableCompatChecks: true },
       );
     });
 

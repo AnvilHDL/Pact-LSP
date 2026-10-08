@@ -795,10 +795,11 @@ export class AnvilDescriptionGenerator {
     options?: { examples?: boolean },
   ): string | null {
     // Symbols lexed with a leading space (e.g. ` ̸`) are found from their
-    // combining character alone.
+    // combining character alone; `⊕` and `∧` are spellings of `⨁` and `⋀`.
+    const symbol = token.replace('⊕', '⨁').replace('∧', '⋀');
     const op =
-      completionInfo.getUnicodeOperator(token) ??
-      completionInfo.getUnicodeOperator(' ' + token);
+      completionInfo.getUnicodeOperator(symbol) ??
+      completionInfo.getUnicodeOperator(' ' + symbol);
     if (op) {
       if (!op.description) return null;
       const ascii = op.ascii ? ` (ASCII: \`${op.ascii}\`)` : '';

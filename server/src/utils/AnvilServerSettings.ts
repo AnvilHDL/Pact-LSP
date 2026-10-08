@@ -182,8 +182,10 @@ export interface AnvilServerSettings {
   maxNumberOfProblems?: number;
   projectRoot?: string;
   executablePath?: string;
-  /** Extra flags passed to the compiler, e.g. `-disable-compat-checks`. */
+  /** Extra flags passed to the compiler, e.g. `-strict-dtc`. */
   compilerArgs?: string[];
+  /** Run pool compatibility checks; off unless the user enables them, since they can be slow. */
+  compatibilityChecks?: boolean;
   /** Milliseconds before a compiler run is stopped; 0 disables the limit. */
   compileTimeout?: number;
   asciiOnlyIcons?: boolean;
@@ -196,6 +198,7 @@ export interface AnvilServerSettings {
 
 export const DEFAULT_ANVIL_SERVER_SETTINGS: AnvilServerSettings = {
   maxNumberOfProblems: 1000,
+  compatibilityChecks: false,
   asciiOnlyIcons: false,
   showTimingInfo: {
     asInlayHints: 'condensed',

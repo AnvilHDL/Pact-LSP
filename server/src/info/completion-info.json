@@ -405,6 +405,26 @@
       "description": "An **offer**: waits for the messages of its arms. Several arms may be taken together, each running its body.\n\nArms are `x = recv ep.m => e`, `send ep.m(v) => e`, their instantaneous forms `x = irecv ep.m => e` and `isend ep.m(v) => e`, or a conjunction `{a = recv ep.m1; b = recv ep.m2} => e` (separated by `;`). Blocking and instantaneous arms cannot be mixed. With instantaneous arms only, an optional `else { e }` runs when no arm is taken.\n\n`offer { ... } match { ... }` continues with the case for exactly the set of arms taken: `ep.m => e`, `{ep.a, ep.b} => e`, or `_ => e`. It cannot have an `else`.\n\nCorresponds to `&( ... )` / `⋀( ... )` in session types.\n\n**Example:**\n\n```anvil\noffer {\n    addr = recv rd.req => send rd.res(*mem[addr]),\n    inp = recv wr.req => set mem[inp.addr] := inp.data\n}\n\noffer {\n    x = irecv ep.req => cycle 1\n} else { cycle 2 }\n```"
     },
 
+    "fair": {
+      "category": "control",
+      "hint": "control",
+      "lspKind": "Keyword",
+      "description": "Marks a choice as **fair** for compatibility checking: `fair if` and `fair xoffer`. The hardware is the same as without `fair`; the checker assumes the choice does not starve an outcome. For `fair if`, each branch is taken infinitely often if the `if` is evaluated infinitely often. For `fair xoffer`, an arm that is available infinitely often is taken infinitely often.\n\nCorresponds to `++` / `+ᶠ` (fair choice) and `^^` / `⨁ᶠ` (fair exclusive offer) in session types.\n\n**Example:**\n\n```anvil\nfair if (*cyc == target) { () } else { cycle 1 >> recurse Wait }\n```"
+    },
+    "fair if": {
+      "category": "control",
+      "hint": "control",
+      "lspKind": "Keyword",
+      "snippet": "fair if ($1) { $2 } else { $3 }",
+      "description": "A **fair if**: an `if` whose two branches are each taken infinitely often whenever it is evaluated infinitely often. Use it when the condition is data the type does not track, such as a counter that eventually reaches its target.\n\nCorresponds to `s1 ++ s2` / `s1 +ᶠ s2` in session types.\n\n**Example:**\n\n```anvil\nfair if (*cyc == target) { () } else { cycle 1 >> recurse Wait }\n```"
+    },
+    "fair xoffer": {
+      "category": "control",
+      "hint": "control",
+      "lspKind": "Keyword",
+      "snippet": "fair xoffer {\n\t$1\n}",
+      "description": "A **fair exclusive offer**: like `xoffer`, but an arm that is available infinitely often is taken infinitely often, as with a round-robin arbiter. Accepts the same selector forms as `xoffer`.\n\nCorresponds to `^^( ... )` / `⨁ᶠ( ... )` in session types.\n\n**Example:**\n\n```anvil\nfair xoffer tree prio {\n    _ = recv slv1.req => send slv1.gnt(()),\n    _ = recv slv2.req => send slv2.gnt(())\n}\n```"
+    },
     "xoffer": {
       "category": "control",
       "hint": "control",
@@ -580,6 +600,18 @@
       "hint": "exclusive offer",
       "ascii": "^",
       "description": "**Exclusive offer** in session types: `⨁(arms)` takes exactly one of its arms. Arms use the same forms as `⋀`.\n\n```anvil\nrec X . ⨁(#ep.req, * : #1 ; X)\n```"
+    },
+    "⨁ᶠ": {
+      "triggers": ["fxor", "foplus"],
+      "hint": "fair exclusive offer",
+      "ascii": "^^",
+      "description": "**Fair exclusive offer** in session types: like `⨁`, but an arm that is available infinitely often is taken infinitely often. `⊕ᶠ` is the same operator.\n\n```anvil\n^^(#slv1.req : #slv1.gnt ; #1, #slv2.req : #slv2.gnt ; #1, * : #1)\n```"
+    },
+    "+ᶠ": {
+      "triggers": ["fplus", "fsum"],
+      "hint": "fair choice",
+      "ascii": "++",
+      "description": "**Fair internal choice** in session types: `s1 +ᶠ s2` chooses like `+`, but if the choice recurs, both branches recur. `F s` is `μ X . (s ++ (#1 ; X))`.\n\n```anvil\nrec X . ((#ep.push ; #1) ++ (#ep.pop ; #1)) ; X\n```"
     },
     "∀": {
       "triggers": ["forall"],

@@ -38,6 +38,8 @@ Type a backslash followed by the operator name to insert its symbol. Each symbol
 | `\prod` | `∏` | `\|\|` | Parallel composition |
 | `\and`, `\wedge` | `⋀` | `&` | Offer |
 | `\xor`, `\oplus` | `⨁` | `^` | Exclusive offer |
+| `\fxor`, `\foplus` | `⨁ᶠ` | `^^` | Fair exclusive offer |
+| `\fplus`, `\fsum` | `+ᶠ` | `++` | Fair choice |
 | `\forall` | `∀` | `forall` | Quantifier |
 | `\in` | `∈` | `:` | Quantifier range |
 | `\mu`, `\rec` | `μ` | `rec` | Recursion |
@@ -86,7 +88,8 @@ The Pact and Anvil extensions both handle `.anvil` files. Enable only one of the
 | Setting | Default | Description |
 | --- | --- | --- |
 | `pact.executablePath` | `pact` on `PATH` | Path to the compiler. |
-| `pact.compilerArgs` | `[]` | Additional compiler flags, e.g. `["-disable-compat-checks"]`. |
+| `pact.compilerArgs` | `[]` | Additional compiler flags, e.g. `["-disable-lt-checks"]`. |
+| `pact.compatibilityChecks` | `false` | Run pool compatibility checks during diagnostics. They can take minutes on large pools, so they run only when enabled. |
 | `pact.compileTimeout` | `15000` | Milliseconds before a compiler run is stopped; `0` disables the limit. |
 | `pact.projectRoot` | Workspace root | Directory in which the compiler runs. |
 | `pact.maxNumberOfProblems` | `100` | Maximum number of diagnostics per file. |
