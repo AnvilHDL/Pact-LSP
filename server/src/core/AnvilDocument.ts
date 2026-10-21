@@ -307,7 +307,8 @@ export class AnvilDocument {
       const ch = charAt(character);
       if (!ch.trim()) continue;
       // Fair operators carry a ᶠ suffix: `⨁ᶠ`, `⊕ᶠ`, `+ᶠ`.
-      if (ch === 'ᶠ' && charAt(character - 1).trim()) return charAt(character - 1) + ch;
+      if (ch === 'ᶠ' && charAt(character - 1).trim())
+        return charAt(character - 1) + ch;
       if (charAt(character + 1) === 'ᶠ') return ch + 'ᶠ';
       return ch;
     }

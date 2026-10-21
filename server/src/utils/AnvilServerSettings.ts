@@ -193,6 +193,7 @@ export interface AnvilServerSettings {
   showTimingInfo?: ShowTimingInfo;
   showSyntaxHelp?: ShowSyntaxHelp;
   showSessionState?: ShowSessionState;
+  showProcessTypes?: boolean;
   debug?: boolean;
 }
 
@@ -208,4 +209,5 @@ export const DEFAULT_ANVIL_SERVER_SETTINGS: AnvilServerSettings = {
   },
   showSyntaxHelp: { onHover: true, onAutocomplete: 'anvilKeywords' },
   showSessionState: { asInlayHints: true, onHover: true },
+  showProcessTypes: true,
 };

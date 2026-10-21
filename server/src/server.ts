@@ -10,6 +10,7 @@ import {
   type DocumentDiagnosticReport,
   FileChangeType,
   CompletionItem,
+  CodeLensRefreshRequest,
 } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { TextDocumentConnection } from 'vscode-languageserver/lib/common/textDocuments';
@@ -28,6 +29,7 @@ import { AnvilDescriptionGenerator } from './generators/AnvilDescriptionGenerato
 import { AnvilCompletionGenerator } from './generators/AnvilCompletionGenerator';
 import { AnvilSignatureHelpGenerator } from './generators/AnvilSignatureHelpGenerator';
 import { AnvilInlayHintGenerator } from './generators/AnvilInlayHintGenerator';
+import { AnvilCodeLensGenerator } from './generators/AnvilCodeLensGenerator';
 import { AnvilAstNode, AnvilAstNodePath } from './core/ast/AnvilAst';
 import { serverLogger } from './utils/logger';
 
@@ -46,6 +48,7 @@ const documents = new TextDocuments(TextDocument);
 let hasConfigurationCapability = false;
 let hasWorkspaceFolderCapability = false;
 let hasDiagnosticRelatedInformationCapability = false;
+let hasCodeLensRefreshCapability = false;
 
 //
 // INITIALIZATION
@@ -62,6 +65,8 @@ connection.onInitialize((params: InitializeParams) => {
   hasWorkspaceFolderCapability = !!(
     capabilities.workspace && !!capabilities.workspace.workspaceFolders
   );
+  hasCodeLensRefreshCapability =
+    !!capabilities.workspace?.codeLens?.refreshSupport;
   hasDiagnosticRelatedInformationCapability = !!(
     capabilities.textDocument &&
     capabilities.textDocument.publishDiagnostics &&
@@ -88,6 +93,7 @@ connection.onInitialize((params: InitializeParams) => {
       referencesProvider: true,
       hoverProvider: true,
       inlayHintProvider: true,
+      codeLensProvider: { resolveProvider: false },
     },
   };
   if (hasWorkspaceFolderCapability) {
@@ -237,6 +243,7 @@ connection.onDidChangeConfiguration((change) => {
   }
   connection.languages.diagnostics.refresh();
   connection.languages.inlayHint.refresh();
+  refreshCodeLenses();
 });
 
 documents.onDidClose((e) => {
@@ -277,6 +284,7 @@ connection.languages.diagnostics.on(async (params) => {
   );
 
   connection.languages.inlayHint.refresh();
+  refreshCodeLenses();
 
   return {
     kind: DocumentDiagnosticReportKind.Full,
@@ -731,6 +739,31 @@ connection.languages.inlayHint.on(async (params) => {
   );
 
   return inlayHints;
+});
+
+//
+// CODE LENSES
+//
+
+function refreshCodeLenses() {
+  if (hasCodeLensRefreshCapability) {
+    void connection.sendRequest(CodeLensRefreshRequest.type);
+  }
+}
+
+connection.onCodeLens(async (params) => {
+  const uri = params.textDocument.uri;
+  const settings = await documentSettings.get(uri);
+  if (settings.showProcessTypes === false) return [];
+
+  const anvilDocument = documentAnvilManagers.get(uri);
+  if (!anvilDocument) return [];
+
+  if (!anvilDocument.anvilAst) {
+    await anvilDocument.ensureAst(settings);
+  }
+
+  return AnvilCodeLensGenerator.generateCodeLenses(anvilDocument);
 });
 
 //

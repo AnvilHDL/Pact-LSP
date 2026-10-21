@@ -1,7 +1,7 @@
 {
   "name": "pact-lsp",
   "displayName": "pact-lsp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Language support for Pact, the session-typed extension of AnvilHDL: diagnostics, navigation, completion and session-state hints.",
   "publisher": "anvilhdl",
   "author": "Wern Lim <dev@wern.cc>",
@@ -155,6 +155,12 @@
               "additionalProperties": false
             }
           ]
+        },
+        "pact.showProcessTypes": {
+          "scope": "window",
+          "type": "boolean",
+          "default": true,
+          "description": "Show each process's type above its definition: its declared interfaces, or the type inferred from its threads."
         },
         "pact.showSessionState": {
           "scope": "window",

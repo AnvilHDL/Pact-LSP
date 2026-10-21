@@ -51,6 +51,10 @@ Go to definition (including into imported files) and find all references (within
 - ✅ Endpoints and messages after `send`/`recv`/`isend`/`irecv`, including interface endpoints
 - ✅ Context-aware suggestions inherited from the Anvil Language Server (registers, functions, types, enum variants, timing annotations)
 
+## Code Lenses
+
+- ✅ Process types: each process's declared interfaces, or else the type inferred from its threads, above its definition. Types are shown in mathematical notation (`μ`, `⨁`, `⋀`, `∥`, `+ᶠ`) whichever notation the source uses (requires `process_type` in the AST)
+
 ## Inlay Hints
 
 - ✅ Session state: the remaining session type after each statement that advances it, and at the start of each offer arm

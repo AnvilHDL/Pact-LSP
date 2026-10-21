@@ -130,6 +130,12 @@
               }
             ]
           },
+          "pact.showProcessTypes": {
+            "scope": "window",
+            "type": "boolean",
+            "default": true,
+            "description": "Show each process's type above its definition: its declared interfaces, or the type inferred from its threads."
+          },
           "pact.showSessionState": {
             "scope": "window",
             "default": {

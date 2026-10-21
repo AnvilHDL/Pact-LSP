@@ -642,6 +642,7 @@ export const AnvilPoolMemberSchema = AnvilSpannableSchema.extend({
   kind: z.literal('pool_member'),
   name: z.string(),
   interface: z.string().nullable(),
+  process: z.string().nullable().optional(),
   endpoints: z.array(z.string()),
   refs: z.array(AnvilSessionRefSchema),
 });
@@ -707,6 +708,18 @@ export type AnvilProcBody = z.infer<typeof AnvilProcBodySchema>;
 // { kind: "proc_def", name, args, body, params, span }
 //
 
+/**
+ * A process's type: its declared interfaces, or the type inferred from its
+ * threads. `type` is a `session_type` node.
+ */
+export const AnvilProcessTypeSchema = z.looseObject({
+  kind: z.literal('process_type'),
+  source: z.enum(['declared', 'inferred']),
+  interfaces: z.array(z.string()),
+  type: z.looseObject({ kind: z.literal('session_type') }),
+});
+export type AnvilProcessType = z.infer<typeof AnvilProcessTypeSchema>;
+
 export const AnvilProcSchema = z.looseObject({
   kind: z.literal('proc_def'),
   name: z.string(),
@@ -715,6 +728,7 @@ export const AnvilProcSchema = z.looseObject({
   params: z.array(AnvilParamSchema),
   span: AnvilSpanSchema,
   interfaces: z.array(AnvilInterfaceRefSchema).optional(),
+  process_type: AnvilProcessTypeSchema.nullable().optional(),
 });
 export type AnvilProc = z.infer<typeof AnvilProcSchema>;
 
