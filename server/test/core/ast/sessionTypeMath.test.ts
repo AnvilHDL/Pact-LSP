@@ -1,7 +1,10 @@
 import assert from 'node:assert';
 import { describe, it } from 'mocha';
 
-import { sessionTypeMath } from '../../../src/core/ast/sessionTypeMath';
+import {
+  sessionTypeLines,
+  sessionTypeMath,
+} from '../../../src/core/ast/sessionTypeMath';
 
 type Json = Record<string, unknown>;
 
@@ -115,6 +118,43 @@ describe('sessionTypeMath', () => {
     assert.strictEqual(
       sessionTypeMath(atom(payload(msg('ep', 'req'), '<3>'))),
       'ep.req<3>',
+    );
+  });
+
+  it('breaks long types over lines', () => {
+    // rec X . ^(ep.req : #1 ; ep.rsp ; #1 ; X, * : #1 ; X)
+    const t = st('rec', {
+      id: 'X',
+      body: st('xoffer', {
+        arms: [
+          arm(
+            msg('ep', 'request_with_a_long_name'),
+            st('seq', {
+              first: atom(delay(1)),
+              then: st('seq', {
+                first: atom(msg('ep', 'response_with_a_long_name')),
+                then: st('var', { id: 'X' }),
+              }),
+            }),
+          ),
+          arm(
+            delay(0),
+            st('seq', { first: atom(delay(1)), then: st('var', { id: 'X' }) }),
+          ),
+        ],
+      }),
+    });
+    assert.strictEqual(sessionTypeLines(t, 200), sessionTypeMath(t));
+    assert.strictEqual(
+      sessionTypeLines(t, 40),
+      [
+        'μX. ⨁(',
+        '  ep.request_with_a_long_name : #1 ;',
+        '    ep.response_with_a_long_name ;',
+        '    X,',
+        '  * : #1 ; X',
+        ')',
+      ].join('\n'),
     );
   });
 

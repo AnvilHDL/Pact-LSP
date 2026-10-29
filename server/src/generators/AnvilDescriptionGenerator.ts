@@ -6,7 +6,9 @@ import z from 'zod';
 import {
   AnvilMessageDefSchema,
   AnvilMessageSyncMode,
+  AnvilProcessTypeSchema,
 } from '../core/ast/schema';
+import { sessionTypeLines } from '../core/ast/sessionTypeMath';
 import { astNodeInfo, completionInfo } from '../info/parsed';
 import {
   enclosingSessionState,
@@ -581,6 +583,8 @@ export class AnvilDescriptionGenerator {
       timingVariableExpansions?: 'all' | 'knownOnly' | 'none';
       /** Remaining session type before and after the enclosing expression. */
       session?: boolean;
+      /** A process's type and data-sensitive type, over several lines. */
+      processTypes?: boolean;
       /** Explanations of the node */
       explanations?: boolean;
       /** Code examples from ast-node-info.json. Only shown when explanations is also true. */
@@ -719,6 +723,33 @@ export class AnvilDescriptionGenerator {
       }
     }
 
+    // populate process type segment
+    let processTypeSegment = '';
+    if (segments?.processTypes && node.kind === 'proc_def') {
+      const ptype = node
+        .unsafeTraverse('process_type')
+        .resolveAs(AnvilProcessTypeSchema);
+      if (ptype) {
+        const label =
+          ptype.source === 'declared'
+            ? `Type (${ptype.interfaces.join(' ∥ ')})`
+            : 'Inferred type';
+        processTypeSegment +=
+          '\n\n---\n\n' +
+          `**${label}:**\n\n` +
+          '```\n' +
+          sessionTypeLines(ptype.type as Record<string, unknown>) +
+          '\n```\n';
+        const ds = ptype.data_sensitive;
+        if (ds)
+          processTypeSegment +=
+            `\n**Data-sensitive type, tracking ${ds.tracks.join(', ')}:**\n\n` +
+            '```\n' +
+            sessionTypeLines(ds.type as Record<string, unknown>) +
+            '\n```\n';
+      }
+    }
+
     // populate explanation segment
     if (segments?.explanations) {
       const entry = astNodeInfo.getFor(node);
@@ -761,6 +792,7 @@ export class AnvilDescriptionGenerator {
       definitionsSegment +
       lifetimeSegment +
       sessionSegment +
+      processTypeSegment +
       explanationSegment +
       debugPathSegment
     );

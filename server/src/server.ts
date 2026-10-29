@@ -390,6 +390,7 @@ connection.onHover(async (params) => {
               : 'knownOnly'
             : 'none',
           session: resolveSessionState(settings.showSessionState).onHover,
+          processTypes: settings.showProcessTypes !== false,
           explanations: showSyntaxHelp.onHover,
           examples: showSyntaxHelp.includeExamples,
           debug: D,

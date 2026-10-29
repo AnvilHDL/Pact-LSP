@@ -133,3 +133,122 @@ export function sessionTypeMath(t: Json, prec = 0): string {
       return '?';
   }
 }
+
+/**
+ * The session type `t` in mathematical notation over several lines: a part
+ * that fits in `width` stays on one line, otherwise it breaks at recursion,
+ * conditions, offer arms and sequence steps, indented by two spaces.
+ */
+export function sessionTypeLines(t: Json, width = 80): string {
+  const out: string[] = [];
+  const line = (indent: number, s: string): void => {
+    out.push(' '.repeat(indent) + s);
+  };
+  const exprs = (u: Json, key: string) =>
+    ((u[key] ?? []) as string[]).join(', ');
+
+  // `lead` goes before the first line, `tail` after the last.
+  const lay = (indent: number, lead: string, tail: string, u: Json): void => {
+    const one = lead + sessionTypeMath(u) + tail;
+    if (indent + one.length <= width) return line(indent, one);
+    switch (u.type) {
+      case 'seq': {
+        const steps: Json[] = [];
+        let s: Json = u;
+        while (s.type === 'seq') {
+          steps.push(field(s, 'first'));
+          s = field(s, 'then');
+        }
+        steps.push(s);
+        // Steps after a labelled first one are indented under the label.
+        const rest = lead === '' ? indent : indent + 2;
+        steps.forEach((step, i) =>
+          lay(
+            i === 0 ? indent : rest,
+            i === 0 ? lead : '',
+            i === steps.length - 1 ? tail : ' ;',
+            step,
+          ),
+        );
+        return;
+      }
+      case 'rec':
+        return lay(
+          indent,
+          `${lead}μ${u.id as string}. `,
+          tail,
+          field(u, 'body'),
+        );
+      case 'rec_data': {
+        const params = ((u.params ?? []) as Json[])
+          .map((p) => `${p.name as string} : ${p.domain as string}`)
+          .join(', ');
+        line(indent, `${lead}(μ${u.id as string}[${params}].`);
+        lay(indent + 2, '', '', field(u, 'body'));
+        return line(indent, `)[${exprs(u, 'args')}]${tail}`);
+      }
+      case 'if': {
+        line(indent, `${lead}if ${u.cond as string} {`);
+        lay(indent + 2, '', '', field(u, 'then'));
+        let rest = field(u, 'else');
+        while (rest.type === 'if') {
+          line(indent, `} else if ${rest.cond as string} {`);
+          lay(indent + 2, '', '', field(rest, 'then'));
+          rest = field(rest, 'else');
+        }
+        line(indent, '} else {');
+        lay(indent + 2, '', '', rest);
+        return line(indent, `}${tail}`);
+      }
+      case 'offer':
+      case 'xoffer':
+      case 'fair_xoffer': {
+        const op =
+          u.type === 'offer' ? '⋀(' : u.type === 'xoffer' ? '⨁(' : '⨁ᶠ(';
+        line(indent, lead + op);
+        const arms = (u.arms ?? []) as Json[];
+        arms.forEach((arm, i) => {
+          const comma = i === arms.length - 1 ? '' : ',';
+          const trigger = actionText(field(arm, 'trigger'));
+          const cont = arm.continuation as Json | null | undefined;
+          if (cont) lay(indent + 2, `${trigger} : `, comma, cont);
+          else line(indent + 2, trigger + comma);
+        });
+        return line(indent, `)${tail}`);
+      }
+      case 'offer_match': {
+        line(indent, `${lead}⋀(${armsText(u.arms as Json[])}).(`);
+        const cases = (u.cases ?? []) as Json[];
+        cases.forEach((c, i) => {
+          const on = c.on as Json[] | null;
+          const label =
+            on === null
+              ? '*'
+              : on.length === 1
+                ? messageText(on[0])
+                : `{${on.map(messageText).join(', ')}}`;
+          lay(
+            indent + 2,
+            `${label} : `,
+            i === cases.length - 1 ? '' : ',',
+            field(c, 'body'),
+          );
+        });
+        return line(indent, `)${tail}`);
+      }
+      case 'choice':
+      case 'fair_choice':
+      case 'parallel': {
+        const op =
+          u.type === 'choice' ? '+ ' : u.type === 'fair_choice' ? '+ᶠ ' : '∥ ';
+        lay(indent, `${lead}  `, '', field(u, 'left'));
+        return lay(indent, op, tail, field(u, 'right'));
+      }
+      default:
+        return line(indent, one);
+    }
+  };
+
+  lay(0, '', '', t);
+  return out.join('\n');
+}

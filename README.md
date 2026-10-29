@@ -20,7 +20,7 @@ A [Language Server Protocol](https://microsoft.github.io/language-server-protoco
 | Hover | Syntax help; definitions, types and message timing contracts¹ |
 | Navigation | Go to definition and find references across interfaces, pools, protocols, processes, channels, registers and types¹ |
 | Session states | The remaining session type of each thread, as inlay hints and on hover¹ |
-| Process types | Each process's type above its definition: its declared interfaces, or else the type inferred from its threads, always in mathematical notation; next to it, the data-sensitive type inferred from the process, with the registers and payloads it tracks² |
+| Process types | Each process's type above its definition: its declared interfaces, or else the type inferred from its threads, always in mathematical notation; next to it, the data-sensitive type inferred from the process, with the registers and payloads it tracks. Long types are named in the lens; hovering the process shows both over several lines² |
 | Signature help | Function calls, message sends, record initialisers and spawns¹ |
 | Highlighting | All Pact keywords and operators (VS Code and Vim) |
 | Timing | Clock-cycle inlay hints and expression lifetimes are not yet available for Pact |
