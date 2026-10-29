@@ -53,7 +53,7 @@ Go to definition (including into imported files) and find all references (within
 
 ## Code Lenses
 
-- ✅ Process types: each process's declared interfaces, or else the type inferred from its threads, above its definition. Types are shown in mathematical notation (`μ`, `⨁`, `⋀`, `∥`, `+ᶠ`) whichever notation the source uses (requires `process_type` in the AST)
+- ✅ Process types: each process's declared interfaces, or else the type inferred from its threads, above its definition, and next to it the data-sensitive type inferred from the process (registers as recursion parameters, `if` guards, payloads `ep.m(x)` / `ep.m<e>`) with what it tracks. Types are shown in mathematical notation (`μ`, `⨁`, `⋀`, `∥`, `+ᶠ`) whichever notation the source uses (requires `process_type` in the AST; the data-sensitive type requires its `data_sensitive` field)
 
 ## Inlay Hints
 

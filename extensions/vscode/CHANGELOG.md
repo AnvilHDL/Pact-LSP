@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Show the data-sensitive type inferred from each process next to its type, with the registers and payloads it tracks; render payload actions `ep.m(x)` and `ep.m<e>`.
+
 ## 0.2.0
 
 - Show each process's type above its definition: its declared interfaces, or the type inferred from its threads, in mathematical notation. Controlled by `pact.showProcessTypes`.

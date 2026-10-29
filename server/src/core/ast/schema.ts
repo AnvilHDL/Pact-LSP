@@ -712,11 +712,23 @@ export type AnvilProcBody = z.infer<typeof AnvilProcBodySchema>;
  * A process's type: its declared interfaces, or the type inferred from its
  * threads. `type` is a `session_type` node.
  */
+export const AnvilDataSensitiveTypeSchema = z.looseObject({
+  kind: z.literal('data_sensitive_type'),
+  /** Registers and messages (whose payloads are) tracked by the type. */
+  tracks: z.array(z.string()),
+  type: z.looseObject({ kind: z.literal('session_type') }),
+});
+export type AnvilDataSensitiveType = z.infer<
+  typeof AnvilDataSensitiveTypeSchema
+>;
+
 export const AnvilProcessTypeSchema = z.looseObject({
   kind: z.literal('process_type'),
   source: z.enum(['declared', 'inferred']),
   interfaces: z.array(z.string()),
   type: z.looseObject({ kind: z.literal('session_type') }),
+  /** The type inferred with the data the process's guards depend on. */
+  data_sensitive: AnvilDataSensitiveTypeSchema.optional(),
 });
 export type AnvilProcessType = z.infer<typeof AnvilProcessTypeSchema>;
 

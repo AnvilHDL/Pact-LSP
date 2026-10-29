@@ -20,14 +20,14 @@ A [Language Server Protocol](https://microsoft.github.io/language-server-protoco
 | Hover | Syntax help; definitions, types and message timing contracts¹ |
 | Navigation | Go to definition and find references across interfaces, pools, protocols, processes, channels, registers and types¹ |
 | Session states | The remaining session type of each thread, as inlay hints and on hover¹ |
-| Process types | Each process's type above its definition: its declared interfaces, or else the type inferred from its threads, always in mathematical notation² |
+| Process types | Each process's type above its definition: its declared interfaces, or else the type inferred from its threads, always in mathematical notation; next to it, the data-sensitive type inferred from the process, with the registers and payloads it tracks² |
 | Signature help | Function calls, message sends, record initialisers and spawns¹ |
 | Highlighting | All Pact keywords and operators (VS Code and Vim) |
 | Timing | Clock-cycle inlay hints and expression lifetimes are not yet available for Pact |
 
 ¹ Requires a Pact compiler with AST output (`-ast`). Without it, diagnostics, keyword completion, syntax help and highlighting remain available.
 
-² Requires a Pact compiler that emits `process_type`. Shown as a code lens; turn it off with `pact.showProcessTypes`. In coc.nvim, enable `codeLens.enable`.
+² Requires a Pact compiler that emits `process_type`; the data-sensitive type needs one with the data-sensitive extension (the `hybrid-pact` branch). Shown as a code lens; turn it off with `pact.showProcessTypes`. In coc.nvim, enable `codeLens.enable`.
 
 See [LSP.md](LSP.md) for the detailed feature matrix.
 

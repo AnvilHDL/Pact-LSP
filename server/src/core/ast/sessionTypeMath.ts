@@ -32,6 +32,9 @@ function actionText(a: Json): string {
       return `$ ${sessionTypeMath(field(a, 'session_type'), 3)}`;
     case 'conjunction':
       return `{${((a.actions ?? []) as Json[]).map(actionText).join(', ')}}`;
+    case 'payload':
+      // ep.m(x) binds a received payload; ep.m<e> sends one.
+      return `${actionText(field(a, 'action'))}${a.payload as string}`;
     default:
       return '?';
   }
@@ -123,11 +126,6 @@ export function sessionTypeMath(t: Json, prec = 0): string {
       return paren(
         0,
         `if ${t.cond as string} { ${sub('then')} } else { ${sub('else')} }`,
-      );
-    case 'probe':
-      return paren(
-        0,
-        `if ${messageText(field(t, 'msg_spec'))} ∈ s { ${sub('then')} } else { ${sub('else')} }`,
       );
     case 'error':
       return `error(${t.reason as string})`;

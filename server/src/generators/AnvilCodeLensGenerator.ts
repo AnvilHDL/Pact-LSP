@@ -12,7 +12,8 @@ export class AnvilCodeLensGenerator {
 
   /**
    * A lens above each process showing its type: the declared interfaces, or
-   * else the type inferred from its threads.
+   * else the type inferred from its threads. A second lens shows the
+   * data-sensitive type inferred from the process, when it tracks any data.
    */
   public static generateCodeLenses(anvilDocument: AnvilDocument): CodeLens[] {
     const ast = anvilDocument.anvilAst;
@@ -40,6 +41,19 @@ export class AnvilCodeLensGenerator {
         range: { start: position, end: position },
         command: { title, command: '' },
       });
+
+      const ds = ptype.data_sensitive;
+      if (ds) {
+        lenses.push({
+          range: { start: position, end: position },
+          command: {
+            title: this.shorten(
+              `data-sensitive (tracks ${ds.tracks.join(', ')}) : ${sessionTypeMath(ds.type as Record<string, unknown>)}`,
+            ),
+            command: '',
+          },
+        });
+      }
     }
     return lenses;
   }

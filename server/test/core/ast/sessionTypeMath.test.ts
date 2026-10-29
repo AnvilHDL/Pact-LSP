@@ -83,6 +83,41 @@ describe('sessionTypeMath', () => {
     assert.strictEqual(sessionTypeMath(u), '(ep.a ; ep.b) + ep.c');
   });
 
+  it('renders data-sensitive types', () => {
+    // (rec X[c : [0,255]] . if (c > 0) { #ep.beat ; X[c - 1] } else { () })[n]
+    const payload = (action: Json, p: string): Json => ({
+      kind: 'session_action',
+      type: 'payload',
+      action,
+      payload: p,
+    });
+    const loop = st('rec_data', {
+      id: 'X',
+      params: [{ name: 'c', domain: '[0,255]' }],
+      args: ['n'],
+      body: st('if', {
+        cond: '(c > 0)',
+        then: st('seq', {
+          first: atom(msg('ep', 'beat', false)),
+          then: st('call', { id: 'X', args: ['(c - 1)'] }),
+        }),
+        else: st('skip'),
+      }),
+    });
+    const t = st('seq', {
+      first: atom(payload(msg('ep', 'len', false), '(n)')),
+      then: loop,
+    });
+    assert.strictEqual(
+      sessionTypeMath(t),
+      '#ep.len(n) ; (μX[c : [0,255]]. if (c > 0) { #ep.beat ; X[(c - 1)] } else { () })[n]',
+    );
+    assert.strictEqual(
+      sessionTypeMath(atom(payload(msg('ep', 'req'), '<3>'))),
+      'ep.req<3>',
+    );
+  });
+
   it('renders quantifiers', () => {
     const t = st('forall', {
       op: 'parallel',
